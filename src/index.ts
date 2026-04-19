@@ -1,41 +1,48 @@
-const express = require('express');
-const {db} = require('./admin');
+import express, { Request, Response } from 'express';
+import { db } from './admin';
+
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware для парсинга JSON
 app.use(express.json());
 
-// Простой GET-маршрут
-app.get('/', (req, res) => {
-  res.json({ message: '🚀 Бэкенд работает!', timestamp: new Date() });
-});
+// app.get('/', (req, res) => {
+//   res.json({ message: '🚀 Бэкенд работает!', timestamp: new Date() });
+// });
 
-// Тестовый GET с параметром
-app.get('/api/users', (req, res) => {
-  res.json([
-    { id: 1, name: 'Alice' },
-    { id: 2, name: 'Bob' }
-  ]);
-});
+// // Тестовый GET с параметром
+// app.get('/api/users', (req, res) => {
+//   res.json([
+//     { id: 1, name: 'Alice' },
+//     { id: 2, name: 'Bob' }
+//   ]);
+// });
 
-// Тестовый POST
-app.post('/api/echo', (req, res) => {
-  const { data } = req.body;
-  res.json({ received: data, echo: 'Hello back!' });
-});
+// // Тестовый POST
+// app.post('/api/echo', (req, res) => {
+//   const { data } = req.body;
+//   res.json({ received: data, echo: 'Hello back!' });
+// });
 
 // Firestore DB
-app.get('/api/test-messages', async (req, res) => {
+app.get('/api/test', async (req: Request, res: Response) => {
   try {
-    // Берём из query параметра, сколько сообщений вернуть (по умолчанию 5)
-    const limit = parseInt(req.query.limit) || 5;
-    
-    // Запрашиваем последние limit сообщений из коллекции 'messages'
+    // const dialogsRef = db.collection('dialogs');
+
+    // dialogsRef.onSnapshot(snapshot => {
+    //   snapshot.docChanges().forEach(change => {
+        
+    //   });
+    // });
+
     const messagesRef = db.collection('messages');
+
+
     const snapshot = await messagesRef
       .orderBy('createdAt', 'desc')
-      .limit(limit)
+      .limit(5)
       .get();
     
     if (snapshot.empty) {
@@ -47,7 +54,7 @@ app.get('/api/test-messages', async (req, res) => {
       });
     }
     
-    const messages = [];
+    const messages: any[] = [];
     snapshot.forEach(doc => {
       messages.push({
         id: doc.id,
@@ -63,7 +70,7 @@ app.get('/api/test-messages', async (req, res) => {
       messages 
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Ошибка при получении сообщений:', error);
     res.status(500).json({ 
       success: false, 
