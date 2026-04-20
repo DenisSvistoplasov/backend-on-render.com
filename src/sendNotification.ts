@@ -10,7 +10,9 @@ export const sendNotification = (userId: string) => {
     .where('id', '==', userId)
     .get()
     .then((querySnapshot) => {
-      const { pushToken } = querySnapshot.docs[0].data();
+      const { pushToken, displayedName } = querySnapshot.docs[0].data();
+      console.log('Notification for user: ', displayedName);
+      console.log('His pushToken: ', pushToken);
 
       if (pushToken) {
         sendPushNotification(
