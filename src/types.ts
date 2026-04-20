@@ -24,4 +24,5 @@ export interface IDBUser{
   login: string;
   displayedName?: string;
   icon?: string;
+  pushToken?: string;
 }

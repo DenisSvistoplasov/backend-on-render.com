@@ -10,9 +10,15 @@ const dialogsRef = db.collection('dialogs') as CollectionReference<IDBDialog>;
 const dialogsData: Record<string, IDBDialog> = {};
 let isInitialized = false;
 
-// Далее: брать пуш токен из бд, добавить в поле юзера пуш токен, на клиенте обновлять пуш токен (и удалять при разлогинивании)
-
 dialogsRef.onSnapshot((snapshot) => {
+
+  if (!isInitialized) {
+    console.log('Subscribed to dialogs');
+  }
+  else {
+    console.log('Got dialog changes');
+  }
+
   snapshot.docChanges().forEach((change) => {
     const dialog = change.doc.data();
     if (change.type === 'removed') {
@@ -51,21 +57,21 @@ app.use(express.json());
 
 // Firestore DB
 app.get('/api/test', async (req: Request, res: Response) => {
-  try {
-    const users = await sendNotification('d3BkxCAHlrSd3VsybDJLLRmPlZp1');
+  // try {
+  //   const users = await sendNotification('d3BkxCAHlrSd3VsybDJLLRmPlZp1');
 
-    res.json({
-      success: true,
-      count: users.length,
-      users,
-    });
-  } catch (error: any) {
-    console.error('Ошибка при получении сообщений:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
+  //   res.json({
+  //     success: true,
+  //     count: users.length,
+  //     users,
+  //   });
+  // } catch (error: any) {
+  //   console.error('Ошибка при получении сообщений:', error);
+  //   res.status(500).json({
+  //     success: false,
+  //     error: error.message,
+  //   });
+  // }
 });
 
 // Запуск сервера
