@@ -29,13 +29,11 @@ export const sendNotification = ({
     usersRef.where('id', 'in', [recipientId, senderId]).get(),
   ]).then(([messagesSnapshot, usersSnapshot]) => {
     const users = usersSnapshot.docs.map((doc) => doc.data());
-    console.log('users: ', users);
     const [recipient, sender] =
       users[0].id === recipientId ? users : users.reverse();
 
     const message = messagesSnapshot.docs[0].data();
 
-    console.log('sender: ', sender);
     console.log(
       `Notification from ${sender.displayedName} to ${recipient.displayedName}`,
     );
