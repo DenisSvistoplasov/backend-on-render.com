@@ -3,12 +3,16 @@ import { db } from './admin';
 import { CollectionReference } from 'firebase-admin/firestore';
 import { IDBDialog } from './types';
 import { sendNotification } from './sendNotification';
+import { time } from 'node:console';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const dialogsRef = db.collection('dialogs') as CollectionReference<IDBDialog>;
 const dialogsData: Record<string, IDBDialog> = {};
 let isInitialized = false;
+
+// TODO:  добавить cron-job.org, чтобы регулярно пинговать и не давать уснуть
+// настроить отображение и ссылку Push-уведомления
 
 dialogsRef.onSnapshot((snapshot) => {
 
@@ -56,22 +60,19 @@ dialogsRef.onSnapshot((snapshot) => {
 app.use(express.json());
 
 // Firestore DB
-app.get('/api/test', async (req: Request, res: Response) => {
-  // try {
-  //   const users = await sendNotification('d3BkxCAHlrSd3VsybDJLLRmPlZp1');
-
-  //   res.json({
-  //     success: true,
-  //     count: users.length,
-  //     users,
-  //   });
-  // } catch (error: any) {
-  //   console.error('Ошибка при получении сообщений:', error);
-  //   res.status(500).json({
-  //     success: false,
-  //     error: error.message,
-  //   });
-  // }
+app.get('/api/ping', async (req: Request, res: Response) => {
+  try {
+    res.json({
+      success: true,
+      time: Date.now(),
+    });
+  } catch (error: any) {
+    console.error('Ошибка ping:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 // Запуск сервера
