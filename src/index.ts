@@ -15,11 +15,9 @@ let isInitialized = false;
 // настроить отображение и ссылку Push-уведомления
 
 dialogsRef.onSnapshot((snapshot) => {
-
   if (!isInitialized) {
     console.log('Subscribed to dialogs');
-  }
-  else {
+  } else {
     console.log('Got dialog changes');
   }
 
@@ -32,7 +30,16 @@ dialogsRef.onSnapshot((snapshot) => {
       if (isInitialized) {
         for (const userId in dialog.unreadMessageCounts) {
           if (dialog.unreadMessageCounts[userId] > 0) {
-            sendNotification(userId);
+            const senderId =
+              dialog.userIds[0] === userId
+                ? dialog.userIds[1]
+                : dialog.userIds[0];
+            sendNotification({
+              dialogId: dialog.dialogId,
+              recipientId: userId,
+              senderId,
+              unreadMessageCounts: dialog.unreadMessageCounts[userId],
+            });
           }
         }
       }
@@ -45,7 +52,16 @@ dialogsRef.onSnapshot((snapshot) => {
             dialog.unreadMessageCounts[userId] >
             dialogsData[dialog.dialogId].unreadMessageCounts[userId]
           ) {
-            sendNotification(userId);
+            const senderId =
+              dialog.userIds[0] === userId
+                ? dialog.userIds[1]
+                : dialog.userIds[0];
+            sendNotification({
+              dialogId: dialog.dialogId,
+              recipientId: userId,
+              senderId,
+              unreadMessageCounts: dialog.unreadMessageCounts[userId],
+            });
           }
         }
       }

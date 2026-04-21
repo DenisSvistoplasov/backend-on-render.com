@@ -6,29 +6,24 @@ import { Expo, ExpoPushMessage, ExpoPushTicket } from 'expo-server-sdk';
 const expo = new Expo();
 
 export async function sendPushNotification(
-  pushToken: string,
-  title: string,
-  body: string,
-  data?: Record<string, any>
+  message: ExpoPushMessage,
 ): Promise<ExpoPushTicket | null> {
   // Проверяем, является ли токен валидным ExpoPushToken
-  if (!Expo.isExpoPushToken(pushToken)) {
-    console.error(`Пуши: Неверный ExpoPushToken: ${pushToken}`);
+  if (!Expo.isExpoPushToken(message.to)) {
+    console.error(`Пуш: Неверный ExpoPushToken: ${message.to}`);
     return null;
   }
 
-  // Формируем сообщение согласно документации [citation:4]
-  const message: ExpoPushMessage = {
-    to: pushToken,
-    sound: 'default',
-    title: title,
-    body: body,
-    data: data || {},
+  const defaultMessage: Partial<ExpoPushMessage> = {
+    priority: 'high',
+    sound: 'notification_wob.wav',
+    channelId: 'default',
+    ttl: 60 * 60 * 24,
   };
 
   try {
     // Отправляем уведомление
-    const ticket = await expo.sendPushNotificationsAsync([message]);
+    const ticket = await expo.sendPushNotificationsAsync([{...defaultMessage, ...message}]);
     // sendPushNotificationsAsync всегда возвращает массив, берем первый элемент
     const firstTicket = ticket[0];
 
@@ -36,7 +31,7 @@ export async function sendPushNotification(
       console.error(`Пуши: Ошибка при отправке! Код: ${firstTicket.message}`);
       // TODO: Здесь можно обработать конкретные ошибки, например, удалить токен, если пришел статус 'DeviceNotRegistered' [citation:8]
     } else {
-      console.log(`Пуши: Успешно отправлено! ID тикета: ${firstTicket.id}`);
+      console.log(`Пуш: Успешно отправлено! ID тикета: ${firstTicket.id}`);
     }
 
     return firstTicket;
@@ -47,4 +42,4 @@ export async function sendPushNotification(
 }
 
 // TODO: add в настройках Expo опцию "Enhanced Security for Push Notifications"
-// accessToken: process.env.EXPO_ACCESS_TOKEN 
+// accessToken: process.env.EXPO_ACCESS_TOKEN
