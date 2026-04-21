@@ -32,16 +32,16 @@ export const sendNotification = ({
     const [recipient, sender] =
       users[0].id === recipientId ? users : users.reverse();
 
+    const recipientName = recipient.displayedName || recipient.login;
+    const senderName = sender.displayedName || sender.login;
     const message = messagesSnapshot.docs[0].data();
 
-    console.log(
-      `Notification from ${sender.displayedName} to ${recipient.displayedName}`,
-    );
+    console.log(`Notification from ${senderName} to ${recipientName}`);
 
     if (recipient.pushToken) {
       sendPushNotification({
         to: recipient.pushToken,
-        title: sender.displayedName,
+        title: senderName,
         body: message.text,
         collapseId: sender.id,
         data: {
