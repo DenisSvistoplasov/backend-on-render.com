@@ -136,7 +136,7 @@ app.get('/api/p2p/getOffer', async (req: Request, res: Response) => {
 app.post('/api/p2p/setAnswer', async (req: Request, res: Response) => {
   try {
     p2pData.answer = req.body;
-    res.status(200);
+    res.status(200).send();
   } catch (error: any) {
     console.error('Ошибка test:', error);
     res.status(500).json({
