@@ -91,6 +91,62 @@ app.get('/api/ping', async (req: Request, res: Response) => {
   }
 });
 
+// Endpoints for P2P test 
+const p2pData = {
+  offer: null as any,
+  answer: null as any
+};
+
+app.post('/api/p2p/setOffer', async (req: Request, res: Response) => {
+  try {
+    p2pData.offer = req.body;
+    res.status(200).send();
+  } catch (error: any) {
+    console.error('Ошибка test:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+app.get('/api/p2p/getOffer', async (req: Request, res: Response) => {
+  try {
+    res.status(200).json(p2pData.offer);
+  } catch (error: any) {
+    console.error('Ошибка test:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+app.post('/api/p2p/setAnswer', async (req: Request, res: Response) => {
+  try {
+    p2pData.answer = req.body;
+    res.status(200);
+  } catch (error: any) {
+    console.error('Ошибка test:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+app.get('/api/p2p/getAnswer', async (req: Request, res: Response) => {
+  try {
+    res.status(200).json(p2pData.answer);
+  } catch (error: any) {
+    console.error('Ошибка test:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Запуск сервера
 app.listen(PORT, () => {
   console.log(`✅ Сервер запущен на порту ${PORT}`);
