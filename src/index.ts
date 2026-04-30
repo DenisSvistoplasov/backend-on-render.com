@@ -4,6 +4,7 @@ import { CollectionReference } from 'firebase-admin/firestore';
 import { IDBDialog } from './types';
 import { sendNotification } from './sendNotification';
 import { time } from 'node:console';
+import { addP2pEndpoints } from './p2p';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -96,67 +97,14 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
   next();
 });
 
-const p2pData = {
-  offer: null as any,
-  answer: null as any
-};
-
-app.post('/api/p2p/setOffer', async (req: Request, res: Response) => {
-  try {
-    p2pData.offer = req.body;
-    res.status(200).send();
-  } catch (error: any) {
-    console.error('Ошибка test:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-app.get('/api/p2p/getOffer', async (req: Request, res: Response) => {
-  try {
-    res.status(200).json(p2pData.offer);
-  } catch (error: any) {
-    console.error('Ошибка test:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-app.post('/api/p2p/setAnswer', async (req: Request, res: Response) => {
-  try {
-    p2pData.answer = req.body;
-    res.status(200).send();
-  } catch (error: any) {
-    console.error('Ошибка test:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-app.get('/api/p2p/getAnswer', async (req: Request, res: Response) => {
-  try {
-    res.status(200).json(p2pData.answer);
-  } catch (error: any) {
-    console.error('Ошибка test:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
+addP2pEndpoints(app);
 
 // Запуск сервера
 app.listen(PORT, () => {
