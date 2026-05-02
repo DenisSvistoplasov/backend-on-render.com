@@ -20,7 +20,9 @@ const LONG_POLLING_TIMEOUT = 1000 * 30;
 const userIds: string[] = [];
 const userPresenceTimers: Record<string, NodeJS.Timeout> = {};
 const pairs: Record<string, Pair> = {};
-const pairListeners: Record<string, PairListener | null> = {};
+const pairListeners: Record<string, PairListener | null> = {}; // userId : listener
+
+// Process listeners
 const handleNewUserChange = (newPairs: Pair[], newUserId: string) => {
   newPairs.forEach((pair) => {
     const currentUserId =
@@ -41,18 +43,16 @@ const handleUserDeleted = (userPairMap: Record<string, string>) => {
   }
 };
 
-
+// Endpoints
 export const addP2pEndpoints = (app: Express) => {
   app.get('/api/p2p/getInitial', async (req: Request, res: Response) => {
     try {
-      const prevUserIds = userIds.map((id) => id + '');
       const currentUserId = String((+userIds[userIds.length - 1] || 0) + 1);
-
-      addNewUser(currentUserId);
+      const newPairs = addNewUser(currentUserId);
 
       res
         .status(200)
-        .json({ userIds: prevUserIds, yourId: currentUserId + '' });
+        .json({ yourId: currentUserId + '', pairs: newPairs });
     } catch (error: any) {
       console.error('Ошибка test:', error);
       res.status(500).json({
@@ -62,11 +62,11 @@ export const addP2pEndpoints = (app: Express) => {
     }
   });
 
-  app.get('/api/p2p/listenPairs', async (req: Request, res: Response) => {
+  app.get('/api/p2p/listenPairs', (req: Request, res: Response) => {
     try {
       const userId = req.query.userId;
       if (!userId || typeof userId !== 'string')
-        throw new Error('userId is required');
+        throw new Error('query param "userId" is required');
 
       if (!userIds.includes(userId)) {
         addNewUser(userId);
@@ -224,7 +224,7 @@ const addNewUser = (userId: string) => {
   userIds.forEach((id) => {
     const pairId = id + '_vs_' + userId;
 
-    const emptyPair: Pair = {
+    const newPair: Pair = {
       pairId,
       senderId: id,
       receiverId: userId + '',
@@ -232,14 +232,15 @@ const addNewUser = (userId: string) => {
       answer: null,
     };
 
-    const pair = { ...emptyPair, ...pairs[pairId] };
-    newPairs.push(pair);
-    pairs[pairId] = pair;
+    newPairs.push(newPair);
+    pairs[pairId] = newPair;
   });
 
   userIds.push(userId);
 
   handleNewUserChange(newPairs, userId);
+
+  return newPairs;
 };
 
 const deleteUser = (userId: string) => {
@@ -255,6 +256,8 @@ const deleteUser = (userId: string) => {
       userPairMap[oldUserId] = pairId;
     }
   }
+
+  pairListeners[userId] = null;
 
   handleUserDeleted(userPairMap);
 };
@@ -277,3 +280,5 @@ const watchUserPresence = (userId: string) => {
     deleteUser(userId);
   }, LONG_POLLING_TIMEOUT * 2);
 };
+
+// TODO: может сделать что-то вроде версионирования, чтобы избежать ситуаций, когда юзеру отправляется ответ listenPairs, затем он делает новый запрос, а между этим произошли изменения в данных
