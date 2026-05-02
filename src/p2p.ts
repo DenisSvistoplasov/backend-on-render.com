@@ -62,7 +62,7 @@ export const addP2pEndpoints = (app: Express) => {
     }
   });
 
-  app.get('/api/p2p/listenPairs', (req: Request, res: Response) => {
+  app.get('/api/p2p/listenPairs', (req: Request, res: Response<PairChanges | 'no changes'>) => {
     try {
       const userId = req.query.userId;
       if (!userId || typeof userId !== 'string')
@@ -73,11 +73,11 @@ export const addP2pEndpoints = (app: Express) => {
       }
 
       // First time -> send immediately
-      if (!pairListeners[userId]) {
-        const responsePairs = calcFirstResponsePairs(userId);
-        res.status(200).json(responsePairs);
-        return;
-      }
+      // if (!pairListeners[userId]) {
+      //   const responsePairs = calcFirstResponsePairs(userId);
+      //   res.status(200).json(responsePairs);
+      //   return;
+      // }
 
       // Wait changes
       const timeout = setTimeout(() => {
