@@ -97,7 +97,7 @@ export const addP2pEndpoints = (app: Express) => {
       res.status(500).json({
         success: false,
         error: error.message,
-      });
+      } as any);
     }
   });
 
