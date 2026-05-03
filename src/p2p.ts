@@ -255,12 +255,13 @@ const addNewUser = (userId: string) => {
   const newPairs: Pair[] = [];
 
   userIds.forEach((id) => {
-    const pairId = id + '_vs_' + userId;
+    const [senderId, receiverId] = +userId <  +id ? [userId, id] : [id, userId];
+    const pairId = senderId + '_vs_' + receiverId;
 
     const newPair: Pair = {
       pairId,
-      senderId: id,
-      receiverId: userId + '',
+      senderId,
+      receiverId,
       offer: null,
       answer: null,
     };
