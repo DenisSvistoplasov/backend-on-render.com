@@ -153,7 +153,7 @@ export const addP2pEndpoints = (app: Express) => {
         pairListeners[userId] = (changedPairs) => {
           clearTimeout(timeout);
           delete pairListeners[userId];
-          res.status(200).json(changedPairs);
+          res.status(200).json({...changedPairs, listeners: Object.keys(pairListeners)} as any);
         };
 
         watchUserPresence(userId);
