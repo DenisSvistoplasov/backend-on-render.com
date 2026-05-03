@@ -69,6 +69,7 @@ export const addP2pEndpoints = (app: Express) => {
     try {
       const clientUserId = req.query.userId;
       let currentUserId: string;
+      console.log('/getInitial Object.keys(pairListeners): ',  Object.keys(pairListeners));
 
       if (clientUserId && typeof clientUserId === 'string') {
         currentUserId = clientUserId;
@@ -76,7 +77,7 @@ export const addP2pEndpoints = (app: Express) => {
         // if page reload
         if (userIds.includes(clientUserId)) {
           const oldPairs = reconnectUser(clientUserId);
-          res.status(200).json({ yourId: currentUserId, pairs: oldPairs });
+          res.status(200).json({ yourId: currentUserId, pairs: oldPairs, listeners: Object.keys(pairListeners) } as any);
         } else {
           // connection after exit
           const newPairs = addNewUser(currentUserId);
@@ -124,6 +125,8 @@ export const addP2pEndpoints = (app: Express) => {
         const userId = req.query.userId;
         if (!userId || typeof userId !== 'string')
           throw new Error('query param "userId" is required');
+
+      console.log('/listenPairs Object.keys(pairListeners): ',  Object.keys(pairListeners));
 
         if (!userIds.includes(userId)) {
           addNewUser(userId);
