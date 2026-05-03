@@ -1,5 +1,4 @@
 import { Request, Response, Express } from 'express';
-import { create } from 'node:domain';
 
 type P2pConnectionData = any;
 type Pair = {
@@ -16,95 +15,105 @@ type PairChanges = {
 };
 type PairListener = (changes: PairChanges) => void;
 
-const LONG_POLLING_TIMEOUT = 1000 * 30;
-
-let userCount = 0;
-const userIds: string[] = [];
-const userPresenceTimers: Record<string, NodeJS.Timeout> = {};
-const pairs: Record<string, Pair> = {};
-const pairListeners: Record<string, PairListener | null> = {}; // userId : listener
-
-// Process listeners
-const handleNewUserChange = (newPairs: Pair[], newUserId: string) => {
-  newPairs.forEach((pair) => {
-    const currentUserId =
-      pair.senderId === newUserId ? pair.receiverId : pair.senderId;
-    if (!pairListeners[currentUserId])
-      throw new Error('No listener for ' + currentUserId);
-    pairListeners[currentUserId]?.({ added: [pair] });
-  });
-};
-const handlePairModified = (pairId: string) => {
-  const [senderId, receiverId] = pairId.split('_vs_');
-
-  if (!pairListeners[senderId]) {
-    console.log('No listener for sender ' + senderId, typeof senderId);
-    console.log('pairListeners: ', Object.keys(pairListeners));
-  }
-  if (!pairListeners[receiverId]){
-    console.log('No listener for receiver ' + receiverId, typeof receiverId);
-    console.log('pairListeners: ', Object.keys(pairListeners));
-  }
-
-  pairListeners[senderId]?.({ modified: [pairs[pairId]] });
-  pairListeners[receiverId]?.({ modified: [pairs[pairId]] });
-
-};
-
-const handleUserDeleted = (userPairMap: Record<string, string>) => {
-  for (const oldUserId in userPairMap) {
-    const pairId = userPairMap[oldUserId];
-    pairListeners[oldUserId]?.({ removed: [pairId] });
-  }
-};
-
-const handleUserReconnect = (
-  userId: string,
-  oldPairs: Record<string, Pair>,
-) => {
-  for (const pairId in oldPairs) {
-    const pair = oldPairs[pairId];
-    const otherUserId =
-      pair.senderId === userId ? pair.receiverId : pair.senderId;
-    pairListeners[otherUserId]?.({ modified: [pair] });
-  }
-};
-
-// Endpoints
 export const addP2pEndpoints = (app: Express) => {
-  app.get('/api/p2p/getInitial', async (req: Request, res: Response<{yourId: string, pairs: Pair[]}>) => {
-    try {
-      const clientUserId = req.query.userId;
-      let currentUserId: string;
-      const listenersKeys = Object.keys(pairListeners);
-      console.log('/getInitial Object.keys(pairListeners): ',  listenersKeys);
+  const LONG_POLLING_TIMEOUT = 1000 * 30;
 
-      if (clientUserId && typeof clientUserId === 'string') {
-        currentUserId = clientUserId;
+  let userCount = 0;
+  const userIds: string[] = [];
+  const userPresenceTimers: Record<string, NodeJS.Timeout> = {};
+  const pairs: Record<string, Pair> = {};
+  const pairListeners: Record<string, PairListener | null> = {}; // userId : listener
 
-        // if page reload
-        if (userIds.includes(clientUserId)) {
-          const oldPairs = reconnectUser(clientUserId);
-          res.status(200).json({ yourId: currentUserId, pairs: oldPairs, listeners: listenersKeys } as any);
-        } else {
-          // connection after exit
-          const newPairs = addNewUser(currentUserId);
-          res.status(200).json({ yourId: currentUserId + '', pairs: newPairs , listeners: listenersKeys } as any);
-        }
-        // first enter
-      } else {
-        currentUserId = String(++userCount);
-        const newPairs = addNewUser(currentUserId);
-        res.status(200).json({ yourId: currentUserId + '', pairs: newPairs });
-      }
-    } catch (error: any) {
-      console.error('Ошибка test:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-      } as any);
+  // Process listeners
+  const handleNewUserChange = (newPairs: Pair[], newUserId: string) => {
+    newPairs.forEach((pair) => {
+      const currentUserId =
+        pair.senderId === newUserId ? pair.receiverId : pair.senderId;
+      if (!pairListeners[currentUserId])
+        throw new Error('No listener for ' + currentUserId);
+      pairListeners[currentUserId]?.({ added: [pair] });
+    });
+  };
+  const handlePairModified = (pairId: string) => {
+    const [senderId, receiverId] = pairId.split('_vs_');
+
+    if (!pairListeners[senderId]) {
+      console.log('No listener for sender ' + senderId, typeof senderId);
+      console.log('pairListeners: ', Object.keys(pairListeners));
     }
-  });
+    if (!pairListeners[receiverId]) {
+      console.log('No listener for receiver ' + receiverId, typeof receiverId);
+      console.log('pairListeners: ', Object.keys(pairListeners));
+    }
+
+    pairListeners[senderId]?.({ modified: [pairs[pairId]] });
+    pairListeners[receiverId]?.({ modified: [pairs[pairId]] });
+  };
+
+  const handleUserDeleted = (userPairMap: Record<string, string>) => {
+    for (const oldUserId in userPairMap) {
+      const pairId = userPairMap[oldUserId];
+      pairListeners[oldUserId]?.({ removed: [pairId] });
+    }
+  };
+
+  const handleUserReconnect = (
+    userId: string,
+    oldPairs: Record<string, Pair>,
+  ) => {
+    for (const pairId in oldPairs) {
+      const pair = oldPairs[pairId];
+      const otherUserId =
+        pair.senderId === userId ? pair.receiverId : pair.senderId;
+      pairListeners[otherUserId]?.({ modified: [pair] });
+    }
+  };
+
+  // Endpoints
+  app.get(
+    '/api/p2p/getInitial',
+    async (req: Request, res: Response<{ yourId: string; pairs: Pair[] }>) => {
+      try {
+        const clientUserId = req.query.userId;
+        let currentUserId: string;
+        const listenersKeys = Object.keys(pairListeners);
+        console.log('/getInitial Object.keys(pairListeners): ', listenersKeys);
+
+        if (clientUserId && typeof clientUserId === 'string') {
+          currentUserId = clientUserId;
+
+          // if page reload
+          if (userIds.includes(clientUserId)) {
+            const oldPairs = reconnectUser(clientUserId);
+            res.status(200).json({
+              yourId: currentUserId,
+              pairs: oldPairs,
+              listeners: listenersKeys,
+            } as any);
+          } else {
+            // connection after exit
+            const newPairs = addNewUser(currentUserId);
+            res.status(200).json({
+              yourId: currentUserId + '',
+              pairs: newPairs,
+              listeners: listenersKeys,
+            } as any);
+          }
+          // first enter
+        } else {
+          currentUserId = String(++userCount);
+          const newPairs = addNewUser(currentUserId);
+          res.status(200).json({ yourId: currentUserId + '', pairs: newPairs });
+        }
+      } catch (error: any) {
+        console.error('Ошибка test:', error);
+        res.status(500).json({
+          success: false,
+          error: error.message,
+        } as any);
+      }
+    },
+  );
 
   app.post(
     '/api/p2p/exit',
@@ -154,7 +163,10 @@ export const addP2pEndpoints = (app: Express) => {
         pairListeners[userId] = (changedPairs) => {
           clearTimeout(timeout);
           delete pairListeners[userId];
-          res.status(200).json({...changedPairs, listeners: Object.keys(pairListeners)} as any);
+          res.status(200).json({
+            ...changedPairs,
+            listeners: Object.keys(pairListeners),
+          } as any);
         };
 
         watchUserPresence(userId);
@@ -282,77 +294,78 @@ export const addP2pEndpoints = (app: Express) => {
   //     });
   //   }
   // });
-};
 
-// Utils
-const addNewUser = (userId: string) => {
-  const newPairs: Pair[] = [];
+  // Utils
+  const addNewUser = (userId: string) => {
+    const newPairs: Pair[] = [];
 
-  userIds.forEach((id) => {
-    const [senderId, receiverId] = +userId < +id ? [userId, id] : [id, userId];
-    const pairId = senderId + '_vs_' + receiverId;
+    userIds.forEach((id) => {
+      const [senderId, receiverId] =
+        +userId < +id ? [userId, id] : [id, userId];
+      const pairId = senderId + '_vs_' + receiverId;
 
-    const newPair: Pair = {
-      pairId,
-      senderId,
-      receiverId,
-      offer: null,
-      answer: null,
-    };
+      const newPair: Pair = {
+        pairId,
+        senderId,
+        receiverId,
+        offer: null,
+        answer: null,
+      };
 
-    newPairs.push(newPair);
-    pairs[pairId] = newPair;
-  });
+      newPairs.push(newPair);
+      pairs[pairId] = newPair;
+    });
 
-  userIds.push(userId);
+    userIds.push(userId);
 
-  handleNewUserChange(newPairs, userId);
+    handleNewUserChange(newPairs, userId);
 
-  return newPairs;
-};
+    return newPairs;
+  };
 
-const reconnectUser = (userId: string) => {
-  const oldPairs: Record<string, Pair> = {};
+  const reconnectUser = (userId: string) => {
+    const oldPairs: Record<string, Pair> = {};
 
-  for (const pairId in pairs) {
-    const [senderId, receiverId] = pairId.split('_vs_');
-    if (senderId === userId || receiverId === userId) {
-      pairs[pairId].offer = null;
-      pairs[pairId].answer = null;
-      oldPairs[pairId] = pairs[pairId];
+    for (const pairId in pairs) {
+      const [senderId, receiverId] = pairId.split('_vs_');
+      if (senderId === userId || receiverId === userId) {
+        pairs[pairId].offer = null;
+        pairs[pairId].answer = null;
+        oldPairs[pairId] = pairs[pairId];
+      }
     }
-  }
 
-  handleUserReconnect(userId, oldPairs);
+    handleUserReconnect(userId, oldPairs);
 
-  return Object.values(oldPairs);
-};
+    return Object.values(oldPairs);
+  };
 
-const deleteUser = (userId: string) => {
-  userIds.splice(userIds.indexOf(userId), 1);
+  const deleteUser = (userId: string) => {
+    userIds.splice(userIds.indexOf(userId), 1);
 
-  const userPairMap: Record<string, string> = {};
+    const userPairMap: Record<string, string> = {};
 
-  for (const pairId in pairs) {
-    const [senderId, receiverId] = pairId.split('_vs_');
-    if (senderId === userId || receiverId === userId) {
-      delete pairs[pairId];
-      const otherUserId = userId === senderId ? receiverId : senderId;
-      userPairMap[otherUserId] = pairId;
+    for (const pairId in pairs) {
+      const [senderId, receiverId] = pairId.split('_vs_');
+      if (senderId === userId || receiverId === userId) {
+        delete pairs[pairId];
+        const otherUserId = userId === senderId ? receiverId : senderId;
+        userPairMap[otherUserId] = pairId;
+      }
     }
-  }
 
-  delete pairListeners[userId];
+    delete pairListeners[userId];
 
-  handleUserDeleted(userPairMap);
-};
+    handleUserDeleted(userPairMap);
+  };
 
-const watchUserPresence = (userId: string) => {
-  if (userPresenceTimers[userId]) clearTimeout(userPresenceTimers[userId]);
+  const watchUserPresence = (userId: string) => {
+    if (userPresenceTimers[userId]) clearTimeout(userPresenceTimers[userId]);
 
-  userPresenceTimers[userId] = setTimeout(() => {
-    deleteUser(userId);
-  }, LONG_POLLING_TIMEOUT * 2);
+    userPresenceTimers[userId] = setTimeout(() => {
+      deleteUser(userId);
+    }, LONG_POLLING_TIMEOUT * 2);
+  };
 };
 
 // TODO: может сделать что-то вроде версионирования, чтобы избежать ситуаций, когда юзеру отправляется ответ listenPairs, затем он делает новый запрос, а между этим произошли изменения в данных
