@@ -29,7 +29,8 @@ const handleNewUserChange = (newPairs: Pair[], newUserId: string) => {
   newPairs.forEach((pair) => {
     const currentUserId =
       pair.senderId === newUserId ? pair.receiverId : pair.senderId;
-    if (!pairListeners[currentUserId]) throw new Error('No listener for '+ currentUserId);
+    if (!pairListeners[currentUserId])
+      throw new Error('No listener for ' + currentUserId);
     pairListeners[currentUserId]?.({ added: [pair] });
   });
 };
@@ -46,6 +47,18 @@ const handleUserDeleted = (userPairMap: Record<string, string>) => {
   }
 };
 
+const handleUserReconnect = (
+  userId: string,
+  oldPairs: Record<string, Pair>,
+) => {
+  for (const pairId in oldPairs) {
+    const pair = oldPairs[pairId];
+    const otherUserId =
+      pair.senderId === userId ? pair.receiverId : pair.senderId;
+    pairListeners[otherUserId]?.({ modified: [pair] });
+  }
+};
+
 // Endpoints
 export const addP2pEndpoints = (app: Express) => {
   app.get('/api/p2p/getInitial', async (req: Request, res: Response) => {
@@ -56,16 +69,21 @@ export const addP2pEndpoints = (app: Express) => {
       if (clientUserId && typeof clientUserId === 'string') {
         currentUserId = clientUserId;
 
+        // if page reload
         if (userIds.includes(clientUserId)) {
-          deleteUser(clientUserId);
-          // reconnectUser(clientUserId);
+          const oldPairs = reconnectUser(clientUserId);
+          res.status(200).json({ yourId: currentUserId, pairs: oldPairs });
+        } else {
+          // connection after exit
+          const newPairs = addNewUser(currentUserId);
+          res.status(200).json({ yourId: currentUserId + '', pairs: newPairs });
         }
+        // first enter
       } else {
         currentUserId = String(++userCount);
+        const newPairs = addNewUser(currentUserId);
+        res.status(200).json({ yourId: currentUserId + '', pairs: newPairs });
       }
-      const newPairs = addNewUser(currentUserId);
-
-      res.status(200).json({ yourId: currentUserId + '', pairs: newPairs });
     } catch (error: any) {
       console.error('Ошибка test:', error);
       res.status(500).json({
@@ -258,7 +276,7 @@ const addNewUser = (userId: string) => {
   const newPairs: Pair[] = [];
 
   userIds.forEach((id) => {
-    const [senderId, receiverId] = +userId <  +id ? [userId, id] : [id, userId];
+    const [senderId, receiverId] = +userId < +id ? [userId, id] : [id, userId];
     const pairId = senderId + '_vs_' + receiverId;
 
     const newPair: Pair = {
@@ -281,8 +299,21 @@ const addNewUser = (userId: string) => {
 };
 
 const reconnectUser = (userId: string) => {
-  
-}
+  const oldPairs: Record<string, Pair> = {};
+
+  for (const pairId in pairs) {
+    const [senderId, receiverId] = pairId.split('_vs_');
+    if (senderId === userId || receiverId === userId) {
+      pairs[pairId].offer = null;
+      pairs[pairId].answer = null;
+      oldPairs[pairId] = pairs[pairId];
+    }
+  }
+
+  handleUserReconnect(userId, oldPairs);
+
+  return oldPairs;
+};
 
 const deleteUser = (userId: string) => {
   userIds.splice(userIds.indexOf(userId), 1);
@@ -293,25 +324,14 @@ const deleteUser = (userId: string) => {
     const [senderId, receiverId] = pairId.split('_vs_');
     if (senderId === userId || receiverId === userId) {
       delete pairs[pairId];
-      const oldUserId = userId === senderId ? receiverId : senderId;
-      userPairMap[oldUserId] = pairId;
+      const otherUserId = userId === senderId ? receiverId : senderId;
+      userPairMap[otherUserId] = pairId;
     }
   }
 
   pairListeners[userId] = null;
 
   handleUserDeleted(userPairMap);
-};
-
-const calcFirstResponsePairs = (userId: string): Pair[] => {
-  const res: Pair[] = [];
-  for (const pairId in pairs) {
-    const [senderId, receiverId] = pairId.split('_vs_');
-    if (senderId === userId || receiverId === userId) {
-      res.push(pairs[pairId]);
-    }
-  }
-  return res;
 };
 
 const watchUserPresence = (userId: string) => {
