@@ -18,6 +18,7 @@ type PairListener = (changes: PairChanges) => void;
 
 const LONG_POLLING_TIMEOUT = 1000 * 30;
 
+let userCount = 0;
 const userIds: string[] = [];
 const userPresenceTimers: Record<string, NodeJS.Timeout> = {};
 const pairs: Record<string, Pair> = {};
@@ -28,6 +29,7 @@ const handleNewUserChange = (newPairs: Pair[], newUserId: string) => {
   newPairs.forEach((pair) => {
     const currentUserId =
       pair.senderId === newUserId ? pair.receiverId : pair.senderId;
+    if (!pairListeners[currentUserId]) throw new Error('No listener for '+ currentUserId);
     pairListeners[currentUserId]?.({ added: [pair] });
   });
 };
@@ -56,9 +58,10 @@ export const addP2pEndpoints = (app: Express) => {
 
         if (userIds.includes(clientUserId)) {
           deleteUser(clientUserId);
+          // reconnectUser(clientUserId);
         }
       } else {
-        currentUserId = String((+userIds[userIds.length - 1] || 0) + 1);
+        currentUserId = String(++userCount);
       }
       const newPairs = addNewUser(currentUserId);
 
@@ -276,6 +279,10 @@ const addNewUser = (userId: string) => {
 
   return newPairs;
 };
+
+const reconnectUser = (userId: string) => {
+  
+}
 
 const deleteUser = (userId: string) => {
   userIds.splice(userIds.indexOf(userId), 1);
