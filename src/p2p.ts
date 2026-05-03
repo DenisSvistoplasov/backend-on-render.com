@@ -76,7 +76,8 @@ export const addP2pEndpoints = (app: Express) => {
     try {
       const clientUserId = req.query.userId;
       let currentUserId: string;
-      console.log('/getInitial Object.keys(pairListeners): ',  Object.keys(pairListeners));
+      const listenersKeys = Object.keys(pairListeners);
+      console.log('/getInitial Object.keys(pairListeners): ',  listenersKeys);
 
       if (clientUserId && typeof clientUserId === 'string') {
         currentUserId = clientUserId;
@@ -84,11 +85,11 @@ export const addP2pEndpoints = (app: Express) => {
         // if page reload
         if (userIds.includes(clientUserId)) {
           const oldPairs = reconnectUser(clientUserId);
-          res.status(200).json({ yourId: currentUserId, pairs: oldPairs, listeners: Object.keys(pairListeners) } as any);
+          res.status(200).json({ yourId: currentUserId, pairs: oldPairs, listeners: listenersKeys } as any);
         } else {
           // connection after exit
           const newPairs = addNewUser(currentUserId);
-          res.status(200).json({ yourId: currentUserId + '', pairs: newPairs });
+          res.status(200).json({ yourId: currentUserId + '', pairs: newPairs , listeners: listenersKeys } as any);
         }
         // first enter
       } else {
