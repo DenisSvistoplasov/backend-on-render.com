@@ -66,6 +66,9 @@ export const addP2pEndpoints = (app: Express) => {
       const otherUserId =
         pair.senderId === userId ? pair.receiverId : pair.senderId;
       pairListeners[otherUserId]?.({ modified: [pair] });
+      if (!pairListeners[otherUserId]) {
+        console.log('No listener for ' + otherUserId, Object.keys(pairListeners));
+      }
     }
   };
 
@@ -84,6 +87,7 @@ export const addP2pEndpoints = (app: Express) => {
 
           // if page reload
           if (userIds.includes(clientUserId)) {
+            console.log('reconnectUser: ');
             const oldPairs = reconnectUser(clientUserId);
             res.status(200).json({
               yourId: currentUserId,
