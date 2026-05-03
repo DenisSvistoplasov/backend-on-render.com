@@ -146,13 +146,13 @@ export const addP2pEndpoints = (app: Express) => {
 
         // Wait changes
         const timeout = setTimeout(() => {
-          pairListeners[userId] = null;
+          delete pairListeners[userId];
           res.status(200).json('no changes');
         }, LONG_POLLING_TIMEOUT);
 
         pairListeners[userId] = (changedPairs) => {
           clearTimeout(timeout);
-          pairListeners[userId] = null;
+          delete pairListeners[userId];
           res.status(200).json(changedPairs);
         };
 
@@ -341,7 +341,7 @@ const deleteUser = (userId: string) => {
     }
   }
 
-  pairListeners[userId] = null;
+  delete pairListeners[userId];
 
   handleUserDeleted(userPairMap);
 };
