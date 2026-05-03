@@ -38,6 +38,10 @@ const handlePairModified = (pairId: string) => {
   const [senderId, receiverId] = pairId.split('_vs_');
   pairListeners[senderId]?.({ modified: [pairs[pairId]] });
   pairListeners[receiverId]?.({ modified: [pairs[pairId]] });
+
+  if (!pairListeners[senderId]) throw new Error('No listener for sender ' + senderId);
+  if (!pairListeners[receiverId])
+    throw new Error('No listener for receiver ' + receiverId);
 };
 
 const handleUserDeleted = (userPairMap: Record<string, string>) => {
