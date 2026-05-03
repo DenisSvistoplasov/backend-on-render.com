@@ -47,7 +47,15 @@ const handleUserDeleted = (userPairMap: Record<string, string>) => {
 export const addP2pEndpoints = (app: Express) => {
   app.get('/api/p2p/getInitial', async (req: Request, res: Response) => {
     try {
-      const currentUserId = String((+userIds[userIds.length - 1] || 0) + 1);
+      const clientUserId = req.query.userId;
+      let currentUserId: string;
+
+      if (clientUserId && typeof clientUserId === 'string') {
+        currentUserId = clientUserId;
+      } else {
+        currentUserId = String((+userIds[userIds.length - 1] || 0) + 1);
+      }
+
       const newPairs = addNewUser(currentUserId);
 
       res.status(200).json({ yourId: currentUserId + '', pairs: newPairs });
