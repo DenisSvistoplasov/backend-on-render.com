@@ -200,7 +200,7 @@ export const addP2pEndpoints = (app: Express) => {
             partnerId,
         );
 
-      const [senderId, receiverId] = [userId, partnerId];
+      const [senderId, receiverId] = [partnerId, userId];
       const pairId = senderId + '_vs_' + receiverId;
 
       if (!pairs[pairId]?.offer)
