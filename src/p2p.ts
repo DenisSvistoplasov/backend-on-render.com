@@ -1,4 +1,5 @@
 import { Request, Response, Express } from 'express';
+import { create } from 'node:domain';
 
 type P2pConnectionData = any;
 type Pair = {
@@ -52,10 +53,13 @@ export const addP2pEndpoints = (app: Express) => {
 
       if (clientUserId && typeof clientUserId === 'string') {
         currentUserId = clientUserId;
+
+        if (userIds.includes(clientUserId)) {
+          deleteUser(clientUserId);
+        }
       } else {
         currentUserId = String((+userIds[userIds.length - 1] || 0) + 1);
       }
-
       const newPairs = addNewUser(currentUserId);
 
       res.status(200).json({ yourId: currentUserId + '', pairs: newPairs });
