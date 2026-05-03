@@ -61,7 +61,7 @@ const handleUserReconnect = (
 
 // Endpoints
 export const addP2pEndpoints = (app: Express) => {
-  app.get('/api/p2p/getInitial', async (req: Request, res: Response) => {
+  app.get('/api/p2p/getInitial', async (req: Request, res: Response<{yourId: string, pairs: Pair[]}>) => {
     try {
       const clientUserId = req.query.userId;
       let currentUserId: string;
@@ -89,7 +89,7 @@ export const addP2pEndpoints = (app: Express) => {
       res.status(500).json({
         success: false,
         error: error.message,
-      });
+      } as any);
     }
   });
 
@@ -312,7 +312,7 @@ const reconnectUser = (userId: string) => {
 
   handleUserReconnect(userId, oldPairs);
 
-  return oldPairs;
+  return Object.values(oldPairs);
 };
 
 const deleteUser = (userId: string) => {
