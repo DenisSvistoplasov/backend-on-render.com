@@ -50,9 +50,7 @@ export const addP2pEndpoints = (app: Express) => {
       const currentUserId = String((+userIds[userIds.length - 1] || 0) + 1);
       const newPairs = addNewUser(currentUserId);
 
-      res
-        .status(200)
-        .json({ yourId: currentUserId + '', pairs: newPairs });
+      res.status(200).json({ yourId: currentUserId + '', pairs: newPairs });
     } catch (error: any) {
       console.error('Ошибка test:', error);
       res.status(500).json({
@@ -62,44 +60,67 @@ export const addP2pEndpoints = (app: Express) => {
     }
   });
 
-  app.get('/api/p2p/listenPairs', (req: Request, res: Response<PairChanges | 'no changes'>) => {
-    try {
-      const userId = req.query.userId;
-      if (!userId || typeof userId !== 'string')
-        throw new Error('query param "userId" is required');
+  app.post(
+    '/api/p2p/exit',
+    async (req: Request, res: Response<{ userId: string }>) => {
+      try {
+        const userId = req.body.userId;
 
-      if (!userIds.includes(userId)) {
-        addNewUser(userId);
+        if (!userIds.includes(userId)) throw new Error('User not found');
+
+        deleteUser(userId);
+        res.status(200).send();
+      } catch (error: any) {
+        console.error('Ошибка test:', error);
+        res.status(500).json({
+          success: false,
+          error: error.message,
+        } as any);
       }
+    },
+  );
 
-      // First time -> send immediately
-      // if (!pairListeners[userId]) {
-      //   const responsePairs = calcFirstResponsePairs(userId);
-      //   res.status(200).json(responsePairs);
-      //   return;
-      // }
+  app.get(
+    '/api/p2p/listenPairs',
+    (req: Request, res: Response<PairChanges | 'no changes'>) => {
+      try {
+        const userId = req.query.userId;
+        if (!userId || typeof userId !== 'string')
+          throw new Error('query param "userId" is required');
 
-      // Wait changes
-      const timeout = setTimeout(() => {
-        pairListeners[userId] = null;
-        res.status(200).json('no changes');
-      }, LONG_POLLING_TIMEOUT);
+        if (!userIds.includes(userId)) {
+          addNewUser(userId);
+        }
 
-      pairListeners[userId] = (changedPairs) => {
-        clearTimeout(timeout);
-        pairListeners[userId] = null;
-        res.status(200).json(changedPairs);
-      };
+        // First time -> send immediately
+        // if (!pairListeners[userId]) {
+        //   const responsePairs = calcFirstResponsePairs(userId);
+        //   res.status(200).json(responsePairs);
+        //   return;
+        // }
 
-      watchUserPresence(userId);
-    } catch (error: any) {
-      console.error('Ошибка test:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-      } as any);
-    }
-  });
+        // Wait changes
+        const timeout = setTimeout(() => {
+          pairListeners[userId] = null;
+          res.status(200).json('no changes');
+        }, LONG_POLLING_TIMEOUT);
+
+        pairListeners[userId] = (changedPairs) => {
+          clearTimeout(timeout);
+          pairListeners[userId] = null;
+          res.status(200).json(changedPairs);
+        };
+
+        watchUserPresence(userId);
+      } catch (error: any) {
+        console.error('Ошибка test:', error);
+        res.status(500).json({
+          success: false,
+          error: error.message,
+        } as any);
+      }
+    },
+  );
 
   // The p2p
   app.post('/api/p2p/setOffer', async (req: Request, res: Response) => {
