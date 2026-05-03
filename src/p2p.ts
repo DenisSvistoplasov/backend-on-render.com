@@ -148,7 +148,8 @@ export const addP2pEndpoints = (app: Express) => {
           res.status(200).json({
               modified: newPairs,
               listeners: Object.keys(pairListeners),
-            } as any);
+          } as any);
+          return;
         }
 
         // First time -> send immediately
