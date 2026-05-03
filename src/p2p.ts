@@ -144,7 +144,11 @@ export const addP2pEndpoints = (app: Express) => {
           throw new Error('query param "userId" is required');
 
         if (!userIds.includes(userId)) {
-          addNewUser(userId);
+          const newPairs = addNewUser(userId);
+          res.status(200).json({
+              modified: newPairs,
+              listeners: Object.keys(pairListeners),
+            } as any);
         }
 
         // First time -> send immediately
