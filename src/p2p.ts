@@ -36,12 +36,19 @@ const handleNewUserChange = (newPairs: Pair[], newUserId: string) => {
 };
 const handlePairModified = (pairId: string) => {
   const [senderId, receiverId] = pairId.split('_vs_');
+
+  if (!pairListeners[senderId]) {
+    console.log('No listener for sender ' + senderId, typeof senderId);
+    console.log('pairListeners: ', Object.keys(pairListeners));
+  }
+  if (!pairListeners[receiverId]){
+    console.log('No listener for receiver ' + receiverId, typeof receiverId);
+    console.log('pairListeners: ', Object.keys(pairListeners));
+  }
+
   pairListeners[senderId]?.({ modified: [pairs[pairId]] });
   pairListeners[receiverId]?.({ modified: [pairs[pairId]] });
 
-  if (!pairListeners[senderId]) throw new Error('No listener for sender ' + senderId);
-  if (!pairListeners[receiverId])
-    throw new Error('No listener for receiver ' + receiverId);
 };
 
 const handleUserDeleted = (userPairMap: Record<string, string>) => {
@@ -125,8 +132,6 @@ export const addP2pEndpoints = (app: Express) => {
         const userId = req.query.userId;
         if (!userId || typeof userId !== 'string')
           throw new Error('query param "userId" is required');
-
-      console.log('/listenPairs Object.keys(pairListeners): ',  Object.keys(pairListeners));
 
         if (!userIds.includes(userId)) {
           addNewUser(userId);
