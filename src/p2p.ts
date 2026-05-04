@@ -120,6 +120,7 @@ export const addP2pEndpoints = (app: Express) => {
             });
           } else {
             // connection after exit
+            userCount++;
             const newPairs = addNewUser(currentUserId);
             console.log('user after exit: ', currentUserId);
             res.status(200).json({
@@ -173,11 +174,12 @@ export const addP2pEndpoints = (app: Express) => {
           throw new Error('query param "userId" is required');
 
         if (!userIds.includes(userId)) {
-          const newPairs = addNewUser(userId);
-          res.status(200).json({
-            modified: newPairs,
-          });
-          return;
+          // const newPairs = addNewUser(userId);
+          // res.status(200).json({
+          //   modified: newPairs,
+          // });
+          // return;
+          throw new Error('no such user: '+ userId);
         }
 
         // First time -> send immediately
@@ -373,6 +375,7 @@ export const addP2pEndpoints = (app: Express) => {
   };
 
   const deleteUser = (userId: string) => {
+    userCount--;
     userIds.splice(userIds.indexOf(userId), 1);
 
     const userPairMap: Record<string, string> = {};
