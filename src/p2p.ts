@@ -111,7 +111,7 @@ export const addP2pEndpoints = (app: Express) => {
 
           // if page reload
           if (userIds.includes(clientUserId)) {
-            console.log('reconnectUser: ');
+            console.log('reconnectUser: ', clientUserId);
             const oldPairs = reconnectUser(clientUserId);
             res.status(200).json({
               yourId: currentUserId,
