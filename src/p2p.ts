@@ -1,4 +1,5 @@
 import { Request, Response, Express } from 'express';
+import { removeListener } from 'node:cluster';
 
 type P2pConnectionData = any;
 type Pair = {
@@ -22,38 +23,65 @@ export const addP2pEndpoints = (app: Express) => {
   const userIds: string[] = [];
   const userPresenceTimers: Record<string, NodeJS.Timeout> = {};
   const pairs: Record<string, Pair> = {};
-  const pairListeners: Record<string, PairListener | null> = {}; // userId : listener
+  // const pairListeners: Record<string, PairListener | null> = {}; // userId : listener
+  const Listeners = {
+    map: {} as Record<
+      string,
+      { data: PairChanges | null; listener: PairListener | null }
+    >,
+    addListener(userId: string, listener: PairListener) {
+      if (!this.map[userId]) this.map[userId] = { data: null, listener };
+      else this.map[userId].listener = listener;
+
+      if (this.map[userId].data) {
+        listener(this.map[userId].data);
+        this.map[userId].data = null;
+      }
+    },
+    removeListener(userId: string) {
+      if (this.map[userId]) this.map[userId].listener = null;
+    },
+    call(userId: string, data: PairChanges) {
+      if (!this.map[userId]) this.map[userId] = { data: null, listener: null };
+
+      if (this.map[userId].listener) this.map[userId].listener(data);
+      else
+        this.map[userId].data = {
+          added: [
+            ...(this.map[userId].data?.added || []),
+            ...(data.added || []),
+          ],
+          modified: [
+            ...(this.map[userId].data?.modified || []),
+            ...(data.modified || []),
+          ],
+          removed: [
+            ...(this.map[userId].data?.removed || []),
+            ...(data.removed || []),
+          ],
+        };
+    },
+  };
 
   // Process listeners
   const handleNewUserChange = (newPairs: Pair[], newUserId: string) => {
     newPairs.forEach((pair) => {
       const currentUserId =
         pair.senderId === newUserId ? pair.receiverId : pair.senderId;
-      if (!pairListeners[currentUserId])
-        throw new Error('No listener for ' + currentUserId);
-      pairListeners[currentUserId]?.({ added: [pair] });
+      Listeners.call(currentUserId, { added: [pair] });
     });
   };
   const handlePairModified = (pairId: string) => {
     const [senderId, receiverId] = pairId.split('_vs_');
 
-    if (!pairListeners[senderId]) {
-      console.log('No listener for sender ' + senderId, typeof senderId);
-      console.log('pairListeners: ', Object.keys(pairListeners));
-    }
-    if (!pairListeners[receiverId]) {
-      console.log('No listener for receiver ' + receiverId, typeof receiverId);
-      console.log('pairListeners: ', Object.keys(pairListeners));
-    }
-
-    pairListeners[senderId]?.({ modified: [pairs[pairId]] });
-    pairListeners[receiverId]?.({ modified: [pairs[pairId]] });
+    Listeners.call(senderId, { modified: [pairs[pairId]] });
+    Listeners.call(receiverId, { modified: [pairs[pairId]] });
   };
 
   const handleUserDeleted = (userPairMap: Record<string, string>) => {
     for (const oldUserId in userPairMap) {
       const pairId = userPairMap[oldUserId];
-      pairListeners[oldUserId]?.({ removed: [pairId] });
+      Listeners.call(oldUserId, { removed: [pairId] });
     }
   };
 
@@ -65,12 +93,10 @@ export const addP2pEndpoints = (app: Express) => {
       const pair = oldPairs[pairId];
       const otherUserId =
         pair.senderId === userId ? pair.receiverId : pair.senderId;
-      pairListeners[otherUserId]?.({ modified: [pair] });
-      if (!pairListeners[otherUserId]) {
-        console.log('No listener for ' + otherUserId, Object.keys(pairListeners));
-      }
+      Listeners.call(otherUserId, { modified: [pair] });
     }
   };
+  // TODO: 1)  проблема старого чата на клиенте
 
   // Endpoints
   app.get(
@@ -79,8 +105,6 @@ export const addP2pEndpoints = (app: Express) => {
       try {
         const clientUserId = req.query.userId;
         let currentUserId: string;
-        const listenersKeys = Object.keys(pairListeners);
-        console.log('/getInitial Object.keys(pairListeners): ', listenersKeys);
 
         if (clientUserId && typeof clientUserId === 'string') {
           currentUserId = clientUserId;
@@ -92,16 +116,14 @@ export const addP2pEndpoints = (app: Express) => {
             res.status(200).json({
               yourId: currentUserId,
               pairs: oldPairs,
-              listeners: listenersKeys,
-            } as any);
+            });
           } else {
             // connection after exit
             const newPairs = addNewUser(currentUserId);
             res.status(200).json({
               yourId: currentUserId + '',
               pairs: newPairs,
-              listeners: listenersKeys,
-            } as any);
+            });
           }
           // first enter
         } else {
@@ -150,9 +172,8 @@ export const addP2pEndpoints = (app: Express) => {
         if (!userIds.includes(userId)) {
           const newPairs = addNewUser(userId);
           res.status(200).json({
-              modified: newPairs,
-              listeners: Object.keys(pairListeners),
-          } as any);
+            modified: newPairs,
+          });
           return;
         }
 
@@ -165,18 +186,17 @@ export const addP2pEndpoints = (app: Express) => {
 
         // Wait changes
         const timeout = setTimeout(() => {
-          delete pairListeners[userId];
+          Listeners.removeListener(userId);
           res.status(200).json('no changes');
         }, LONG_POLLING_TIMEOUT);
 
-        pairListeners[userId] = (changedPairs) => {
+        Listeners.addListener(userId, (changedPairs) => {
           clearTimeout(timeout);
-          delete pairListeners[userId];
+          Listeners.removeListener(userId);
           res.status(200).json({
             ...changedPairs,
-            listeners: Object.keys(pairListeners),
-          } as any);
-        };
+          });
+        });
 
         watchUserPresence(userId);
       } catch (error: any) {
@@ -363,7 +383,7 @@ export const addP2pEndpoints = (app: Express) => {
       }
     }
 
-    delete pairListeners[userId];
+    Listeners.removeListener(userId);
 
     handleUserDeleted(userPairMap);
   };
