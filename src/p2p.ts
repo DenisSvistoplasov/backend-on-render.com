@@ -179,7 +179,7 @@ export const addP2pEndpoints = (app: Express) => {
           //   modified: newPairs,
           // });
           // return;
-          throw new Error('no such user: '+ userId);
+          return res.status(404).json(('no such user: '+ userId)as any);
         }
 
         // First time -> send immediately
