@@ -106,6 +106,7 @@ export const addP2pEndpoints = (app: Express) => {
         const clientUserId = req.query.userId;
         let currentUserId: string;
 
+        console.log('userIds: ', userIds);
         if (clientUserId && typeof clientUserId === 'string') {
           currentUserId = clientUserId;
 
