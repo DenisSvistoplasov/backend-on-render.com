@@ -120,6 +120,7 @@ export const addP2pEndpoints = (app: Express) => {
           } else {
             // connection after exit
             const newPairs = addNewUser(currentUserId);
+            console.log('user after exit: ', currentUserId);
             res.status(200).json({
               yourId: currentUserId + '',
               pairs: newPairs,
@@ -128,6 +129,7 @@ export const addP2pEndpoints = (app: Express) => {
           // first enter
         } else {
           currentUserId = String(++userCount);
+          console.log('new user: ', currentUserId);
           const newPairs = addNewUser(currentUserId);
           res.status(200).json({ yourId: currentUserId + '', pairs: newPairs });
         }
