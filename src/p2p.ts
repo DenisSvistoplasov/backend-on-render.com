@@ -375,7 +375,7 @@ export const addP2pEndpoints = (app: Express) => {
   };
 
   const deleteUser = (userId: string) => {
-    userCount--;
+    // userCount--;
     userIds.splice(userIds.indexOf(userId), 1);
 
     const userPairMap: Record<string, string> = {};
