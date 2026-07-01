@@ -81,6 +81,16 @@ export const addP2pEndpoints = (app: Express) => {
   const handlePairModified = (pairId: string) => {
     const [senderId, receiverId] = pairId.split('_vs_');
 
+    console.log(
+      'Call listeners for ',
+      senderId,
+      !!Listeners.map[senderId]?.listener,
+      !!Listeners.map[senderId]?.data,
+      '.',
+      receiverId,
+      !!Listeners.map[receiverId]?.listener,
+      !!Listeners.map[receiverId]?.data,
+    );
     Listeners.call(senderId, { modified: [pairs[pairId]] });
     Listeners.call(receiverId, { modified: [pairs[pairId]] });
   };
@@ -271,6 +281,7 @@ export const addP2pEndpoints = (app: Express) => {
 
       pairs[pairId].offer = offer;
 
+      console.log('Set offer.');
       handlePairModified(pairId);
 
       res.status(200).send();
@@ -350,8 +361,6 @@ export const addP2pEndpoints = (app: Express) => {
   //     });
   //   }
   // });
-
-  
 
   // UTILS
   const addNewUser = (userId: string) => {
