@@ -1,3 +1,8 @@
+import {
+  createHttpPollingExpressRouter,
+  HttpPollingServerNetworkAdapter,
+} from '@loro-extended/adapter-http-polling/server';
+import { Repo } from '@loro-extended/repo';
 import { Request, Response, Express } from 'express';
 import { removeListener } from 'node:cluster';
 
@@ -35,8 +40,6 @@ export const addP2pEndpoints = (app: Express) => {
 
       if (this.map[userId].data) {
         listener(this.map[userId].data);
-        if (!this.map[userId]) console.warn('1) There is no listener for id', userId);
-        this.map[userId].data = null;
       }
     },
     removeListener(userId: string) {
@@ -47,7 +50,8 @@ export const addP2pEndpoints = (app: Express) => {
 
       if (this.map[userId].listener) this.map[userId].listener(data);
       else {
-        if (!this.map[userId]) console.warn('2) There is no listener for id', userId);
+        if (!this.map[userId])
+          console.warn('2) There is no listener for id', userId);
         this.map[userId].data = {
           added: [
             ...(this.map[userId].data?.added || []),
@@ -99,6 +103,22 @@ export const addP2pEndpoints = (app: Express) => {
       Listeners.call(otherUserId, { modified: [pair] });
     }
   };
+
+  // // lib for long polling
+  // // 1. Создаем адаптер для сервера
+  // const pollingAdapter = new HttpPollingServerNetworkAdapter();
+
+  // // 2. Создаем Repo - центральный движок синхронизации
+  // const repo = new Repo({
+  //   identity: { name: 'p2p-server', type: 'service' },
+  //   adapters: [pollingAdapter],
+  // });
+
+  // // 3. Вместо addP2pEndpoints(app) подключаем готовый роутер
+  // app.use(
+  //   '/api/p2p/listenPairs2',
+  //   createHttpPollingExpressRouter(pollingAdapter),
+  // );
 
   // ENDPOINTS
   app.get(
@@ -331,7 +351,9 @@ export const addP2pEndpoints = (app: Express) => {
   //   }
   // });
 
-  // Utils
+  
+
+  // UTILS
   const addNewUser = (userId: string) => {
     const newPairs: Pair[] = [];
 
