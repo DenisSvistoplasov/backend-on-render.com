@@ -35,6 +35,7 @@ export const addP2pEndpoints = (app: Express) => {
 
       if (this.map[userId].data) {
         listener(this.map[userId].data);
+        if (!this.map[userId]) console.warn('1) There is no listener for id', userId);
         this.map[userId].data = null;
       }
     },
@@ -45,7 +46,8 @@ export const addP2pEndpoints = (app: Express) => {
       if (!this.map[userId]) this.map[userId] = { data: null, listener: null };
 
       if (this.map[userId].listener) this.map[userId].listener(data);
-      else
+      else {
+        if (!this.map[userId]) console.warn('2) There is no listener for id', userId);
         this.map[userId].data = {
           added: [
             ...(this.map[userId].data?.added || []),
@@ -60,6 +62,7 @@ export const addP2pEndpoints = (app: Express) => {
             ...(data.removed || []),
           ],
         };
+      }
     },
   };
 
@@ -178,7 +181,7 @@ export const addP2pEndpoints = (app: Express) => {
           //   modified: newPairs,
           // });
           // return;
-          return res.status(404).json(('no such user: '+ userId)as any);
+          return res.status(404).json(('no such user: ' + userId) as any);
         }
 
         // First time -> send immediately
