@@ -39,7 +39,7 @@ export const addP2pEndpoints = (app: Express) => {
       }
     },
     removeListener(userId: string) {
-      if (this.map[userId]) this.map[userId].listener = null;
+      if (this.map[userId]) delete this.map[userId];
     },
     call(userId: string, data: PairChanges) {
       if (!this.map[userId]) this.map[userId] = { data: null, listener: null };
@@ -96,9 +96,8 @@ export const addP2pEndpoints = (app: Express) => {
       Listeners.call(otherUserId, { modified: [pair] });
     }
   };
-  // TODO: 1)  проблема старого чата на клиенте
 
-  // Endpoints
+  // ENDPOINTS
   app.get(
     '/api/p2p/getInitial',
     async (req: Request, res: Response<{ yourId: string; pairs: Pair[] }>) => {
