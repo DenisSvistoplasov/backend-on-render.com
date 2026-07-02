@@ -75,7 +75,7 @@ export const addP2pEndpoints = (app: Express) => {
     newPairs.forEach((pair) => {
       const currentUserId =
         pair.senderId === newUserId ? pair.receiverId : pair.senderId;
-      console.log('New user. Call listeners for ', currentUserId);
+      console.log('New user. Call listeners for ', currentUserId, !!Listeners.map[currentUserId]?.listener);
       Listeners.call(currentUserId, { added: [pair] });
     });
   };
@@ -97,7 +97,7 @@ export const addP2pEndpoints = (app: Express) => {
   const handleUserDeleted = (userPairMap: Record<string, string>) => {
     for (const oldUserId in userPairMap) {
       const pairId = userPairMap[oldUserId];
-      console.log('Delete user. Call listeners for ', oldUserId);
+      console.log('Delete user. Call listeners for ', oldUserId, !!Listeners.map[oldUserId]?.listener);
       Listeners.call(oldUserId, { removed: [pairId] });
     }
   };
@@ -110,7 +110,7 @@ export const addP2pEndpoints = (app: Express) => {
       const pair = oldPairs[pairId];
       const otherUserId =
         pair.senderId === userId ? pair.receiverId : pair.senderId;
-      console.log('Reconnect user. Call listeners for ', otherUserId);
+      console.log('Reconnect user. Call listeners for ', otherUserId, !!Listeners.map[otherUserId]?.listener);
       Listeners.call(otherUserId, { modified: [pair] });
     }
   };
