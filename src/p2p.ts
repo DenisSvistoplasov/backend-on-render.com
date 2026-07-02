@@ -28,6 +28,7 @@ export const addP2pEndpoints = (app: Express) => {
   const userIds: string[] = [];
   const userPresenceTimers: Record<string, NodeJS.Timeout> = {};
   const pairs: Record<string, Pair> = {};
+  const timeoutMap: Record<string, NodeJS.Timeout> = {};
   // const pairListeners: Record<string, PairListener | null> = {}; // userId : listener
   const Listeners = {
     map: {} as Record<
@@ -78,7 +79,7 @@ export const addP2pEndpoints = (app: Express) => {
       console.log(
         'New user. Call listeners for ',
         currentUserId,
-      'listener: ',
+        'listener: ',
         !!Listeners.map[currentUserId]?.listener,
       );
       Listeners.call(currentUserId, { added: [pair] });
@@ -96,8 +97,10 @@ export const addP2pEndpoints = (app: Express) => {
       receiverId,
       'listener: ',
       !!Listeners.map[receiverId]?.listener,
-      'offer: ', !!pairs[pairId].offer,
-      'answer: ', !!pairs[pairId].answer,
+      'offer: ',
+      !!pairs[pairId].offer,
+      'answer: ',
+      !!pairs[pairId].answer,
     );
     Listeners.call(senderId, { modified: [pairs[pairId]] });
     Listeners.call(receiverId, { modified: [pairs[pairId]] });
@@ -240,7 +243,9 @@ export const addP2pEndpoints = (app: Express) => {
         // }
 
         // Wait changes
-        const timeout = setTimeout(() => {
+        clearTimeout(timeoutMap[userId]);
+
+        timeoutMap[userId] = setTimeout(() => {
           Listeners.removeListener(userId);
           console.log('1) removeListener for ' + userId);
           res.status(200).json('no changes');
@@ -248,7 +253,7 @@ export const addP2pEndpoints = (app: Express) => {
 
         console.log('Add listener for ' + userId);
         Listeners.addListener(userId, (changedPairs) => {
-          clearTimeout(timeout);
+          clearTimeout(timeoutMap[userId]);
           Listeners.removeListener(userId);
           console.log('2) removeListener for ' + userId);
           res.status(200).json({
