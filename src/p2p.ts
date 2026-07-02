@@ -228,6 +228,7 @@ export const addP2pEndpoints = (app: Express) => {
           res.status(200).json('no changes');
         }, LONG_POLLING_TIMEOUT);
 
+        console.log('Add listener for ' + userId);
         Listeners.addListener(userId, (changedPairs) => {
           clearTimeout(timeout);
           Listeners.removeListener(userId);
