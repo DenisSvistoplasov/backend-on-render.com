@@ -78,6 +78,7 @@ export const addP2pEndpoints = (app: Express) => {
       console.log(
         'New user. Call listeners for ',
         currentUserId,
+      'listener: ',
         !!Listeners.map[currentUserId]?.listener,
       );
       Listeners.call(currentUserId, { added: [pair] });
@@ -89,10 +90,14 @@ export const addP2pEndpoints = (app: Express) => {
     console.log(
       'Modified. Call listeners for ',
       senderId,
+      'listener: ',
       !!Listeners.map[senderId]?.listener,
-      '.',
+      '. Call listeners for ',
       receiverId,
+      'listener: ',
       !!Listeners.map[receiverId]?.listener,
+      'offer: ', !!pairs[pairId].offer,
+      'answer: ', !!pairs[pairId].answer,
     );
     Listeners.call(senderId, { modified: [pairs[pairId]] });
     Listeners.call(receiverId, { modified: [pairs[pairId]] });
@@ -301,11 +306,16 @@ export const addP2pEndpoints = (app: Express) => {
       pairs[pairId].offer = offer;
       pairs[pairId].answer = null;
 
-      console.log('Set offer.');
+      console.log('Set offer.', userId);
       console.log(
-        'Listener for ',
+        'Listener for sender',
         senderId,
         !!Listeners.map[senderId]?.listener,
+      );
+      console.log(
+        'Listener for receiver',
+        receiverId,
+        !!Listeners.map[receiverId]?.listener,
       );
       handlePairModified(pairId);
 
