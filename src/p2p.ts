@@ -260,7 +260,7 @@ export const addP2pEndpoints = (app: Express) => {
       if (!userId || !partnerId || !offer)
         throw new Error('userId, partnerId and offer are required');
 
-      if (+userId >= +partnerId)
+      if (userId >= partnerId)
         throw new Error(
           'cant send offer. userId > partnerId. userId:' +
             userId +
@@ -319,7 +319,7 @@ export const addP2pEndpoints = (app: Express) => {
       if (!userId || !partnerId || !answer)
         throw new Error('userId, partnerId and answer are required');
 
-      if (+userId <= +partnerId)
+      if (userId <= partnerId)
         throw new Error(
           'cant send answer. userId > partnerId. userId:' +
             userId +
@@ -370,7 +370,7 @@ export const addP2pEndpoints = (app: Express) => {
 
     userIds.forEach((id) => {
       const [senderId, receiverId] =
-        +userId < +id ? [userId, id] : [id, userId];
+        userId < id ? [userId, id] : [id, userId];
       const pairId = senderId + '_vs_' + receiverId;
 
       const newPair: Pair = {
