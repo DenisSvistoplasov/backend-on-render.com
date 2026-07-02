@@ -75,7 +75,11 @@ export const addP2pEndpoints = (app: Express) => {
     newPairs.forEach((pair) => {
       const currentUserId =
         pair.senderId === newUserId ? pair.receiverId : pair.senderId;
-      console.log('New user. Call listeners for ', currentUserId, !!Listeners.map[currentUserId]?.listener);
+      console.log(
+        'New user. Call listeners for ',
+        currentUserId,
+        !!Listeners.map[currentUserId]?.listener,
+      );
       Listeners.call(currentUserId, { added: [pair] });
     });
   };
@@ -97,7 +101,11 @@ export const addP2pEndpoints = (app: Express) => {
   const handleUserDeleted = (userPairMap: Record<string, string>) => {
     for (const oldUserId in userPairMap) {
       const pairId = userPairMap[oldUserId];
-      console.log('Delete user. Call listeners for ', oldUserId, !!Listeners.map[oldUserId]?.listener);
+      console.log(
+        'Delete user. Call listeners for ',
+        oldUserId,
+        !!Listeners.map[oldUserId]?.listener,
+      );
       Listeners.call(oldUserId, { removed: [pairId] });
     }
   };
@@ -110,7 +118,11 @@ export const addP2pEndpoints = (app: Express) => {
       const pair = oldPairs[pairId];
       const otherUserId =
         pair.senderId === userId ? pair.receiverId : pair.senderId;
-      console.log('Reconnect user. Call listeners for ', otherUserId, !!Listeners.map[otherUserId]?.listener);
+      console.log(
+        'Reconnect user. Call listeners for ',
+        otherUserId,
+        !!Listeners.map[otherUserId]?.listener,
+      );
       Listeners.call(otherUserId, { modified: [pair] });
     }
   };
@@ -259,16 +271,19 @@ export const addP2pEndpoints = (app: Express) => {
         offer: P2pConnectionData;
       };
 
-      if (!userId || !partnerId || !offer)
-        throw new Error('userId, partnerId and offer are required');
+      if (!userId || !partnerId || !offer) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'userId, partnerId and offer are required',
+        });
+      }
 
-      if (userId >= partnerId)
-        throw new Error(
-          'cant send offer. userId > partnerId. userId:' +
-            userId +
-            ' partnerId:' +
-            partnerId,
-        );
+      if (userId >= partnerId) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: `Cant send offer. userId must be less than partnerId. userId: ${userId}, partnerId: ${partnerId}`,
+        });
+      }
 
       const [senderId, receiverId] = [userId, partnerId];
       const pairId = senderId + '_vs_' + receiverId;
@@ -284,6 +299,7 @@ export const addP2pEndpoints = (app: Express) => {
       }
 
       pairs[pairId].offer = offer;
+      pairs[pairId].answer = null;
 
       console.log('Set offer.');
       console.log(
