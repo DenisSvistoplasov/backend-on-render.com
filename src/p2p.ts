@@ -224,12 +224,14 @@ export const addP2pEndpoints = (app: Express) => {
         // Wait changes
         const timeout = setTimeout(() => {
           Listeners.removeListener(userId);
+          console.log('1) removeListener for ' + userId);
           res.status(200).json('no changes');
         }, LONG_POLLING_TIMEOUT);
 
         Listeners.addListener(userId, (changedPairs) => {
           clearTimeout(timeout);
           Listeners.removeListener(userId);
+          console.log('2) removeListener for ' + userId);
           res.status(200).json({
             ...changedPairs,
           });
@@ -423,6 +425,7 @@ export const addP2pEndpoints = (app: Express) => {
     }
 
     Listeners.removeListener(userId);
+    console.log('3) removeListener for ' + userId);
 
     handleUserDeleted(userPairMap);
   };
