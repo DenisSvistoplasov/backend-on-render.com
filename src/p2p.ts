@@ -285,6 +285,7 @@ export const addP2pEndpoints = (app: Express) => {
       pairs[pairId].offer = offer;
 
       console.log('Set offer.');
+      console.log('Listener for ', senderId, !!Listeners.map[senderId]?.listener);
       handlePairModified(pairId);
 
       res.status(200).send();
