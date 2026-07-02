@@ -75,6 +75,7 @@ export const addP2pEndpoints = (app: Express) => {
     newPairs.forEach((pair) => {
       const currentUserId =
         pair.senderId === newUserId ? pair.receiverId : pair.senderId;
+      console.log('New user. Call listeners for ', currentUserId);
       Listeners.call(currentUserId, { added: [pair] });
     });
   };
@@ -82,14 +83,12 @@ export const addP2pEndpoints = (app: Express) => {
     const [senderId, receiverId] = pairId.split('_vs_');
 
     console.log(
-      'Call listeners for ',
+      'Modified. Call listeners for ',
       senderId,
       !!Listeners.map[senderId]?.listener,
-      !!Listeners.map[senderId]?.data,
       '.',
       receiverId,
       !!Listeners.map[receiverId]?.listener,
-      !!Listeners.map[receiverId]?.data,
     );
     Listeners.call(senderId, { modified: [pairs[pairId]] });
     Listeners.call(receiverId, { modified: [pairs[pairId]] });
@@ -98,6 +97,7 @@ export const addP2pEndpoints = (app: Express) => {
   const handleUserDeleted = (userPairMap: Record<string, string>) => {
     for (const oldUserId in userPairMap) {
       const pairId = userPairMap[oldUserId];
+      console.log('Delete user. Call listeners for ', oldUserId);
       Listeners.call(oldUserId, { removed: [pairId] });
     }
   };
@@ -110,6 +110,7 @@ export const addP2pEndpoints = (app: Express) => {
       const pair = oldPairs[pairId];
       const otherUserId =
         pair.senderId === userId ? pair.receiverId : pair.senderId;
+      console.log('Reconnect user. Call listeners for ', otherUserId);
       Listeners.call(otherUserId, { modified: [pair] });
     }
   };
@@ -285,7 +286,11 @@ export const addP2pEndpoints = (app: Express) => {
       pairs[pairId].offer = offer;
 
       console.log('Set offer.');
-      console.log('Listener for ', senderId, !!Listeners.map[senderId]?.listener);
+      console.log(
+        'Listener for ',
+        senderId,
+        !!Listeners.map[senderId]?.listener,
+      );
       handlePairModified(pairId);
 
       res.status(200).send();
@@ -371,8 +376,7 @@ export const addP2pEndpoints = (app: Express) => {
     const newPairs: Pair[] = [];
 
     userIds.forEach((id) => {
-      const [senderId, receiverId] =
-        userId < id ? [userId, id] : [id, userId];
+      const [senderId, receiverId] = userId < id ? [userId, id] : [id, userId];
       const pairId = senderId + '_vs_' + receiverId;
 
       const newPair: Pair = {
