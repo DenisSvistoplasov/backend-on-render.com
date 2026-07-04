@@ -288,12 +288,12 @@ export const addP2pEndpoints = (app: Express) => {
         });
       }
 
-      if (userId >= partnerId) {
-        return res.status(400).json({
-          error: 'Bad Request',
-          message: `Cant send offer. userId must be less than partnerId. userId: ${userId}, partnerId: ${partnerId}`,
-        });
-      }
+      // if (userId >= partnerId) {
+      //   return res.status(400).json({
+      //     error: 'Bad Request',
+      //     message: `Cant send offer. userId must be less than partnerId. userId: ${userId}, partnerId: ${partnerId}`,
+      //   });
+      // }
 
       const [senderId, receiverId] = [userId, partnerId];
       const pairId = senderId + '_vs_' + receiverId;

@@ -3,11 +3,13 @@ import { db } from './admin';
 import { CollectionReference } from 'firebase-admin/firestore';
 import { IDBDialog } from './types';
 import { sendNotification } from './sendNotification';
-import { time } from 'node:console';
+import http from 'http'; 
 import { addP2pEndpoints } from './p2p';
+import { startWebSocket } from './webSocket';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
 const dialogsRef = db.collection('dialogs') as CollectionReference<IDBDialog>;
 const dialogsData: Record<string, IDBDialog> = {};
 let isInitialized = false;
@@ -106,7 +108,9 @@ app.use((req, res, next) => {
 
 addP2pEndpoints(app);
 
+startWebSocket(server);
+
 // Запуск сервера
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`✅ Сервер запущен на порту ${PORT}`);
 });
