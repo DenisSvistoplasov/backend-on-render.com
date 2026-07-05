@@ -31,8 +31,9 @@ export function startWebSocket(
       onMessage(ws, data);
     });
 
-    ws.on('close', () => {
+    ws.on('close', (code, reason) => {
       console.log('Client disconnected');
+      console.log('code, reason: ', code, reason);
       onClose(ws);
       // clearInterval(pingInterval);
     });
