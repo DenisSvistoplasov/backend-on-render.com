@@ -4,8 +4,8 @@ import { CollectionReference } from 'firebase-admin/firestore';
 import { IDBDialog } from './types';
 import { sendNotification } from './sendNotification';
 import http from 'http'; 
-import { addP2pEndpoints } from './p2p';
-import { startWebSocket } from './webSocket';
+import { addP2pEndpoints } from './p2pWs';
+// import { addP2pEndpoints } from './p2p';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -106,9 +106,8 @@ app.use((req, res, next) => {
   next();
 });
 
-addP2pEndpoints(app);
+addP2pEndpoints(server);
 
-startWebSocket(server);
 
 // Запуск сервера
 server.listen(PORT, () => {
