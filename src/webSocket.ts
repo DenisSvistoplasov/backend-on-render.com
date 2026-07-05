@@ -25,7 +25,7 @@ export function startWebSocket(server: http.Server) {
         console.log('Received:', data);
 
         clients.forEach((client) => {
-          if (client !== ws && client.readyState === WebSocket.OPEN) {
+          if (client.readyState === WebSocket.OPEN) {
             client.send(
               JSON.stringify('Received: ' + JSON.stringify(data)),
             );
