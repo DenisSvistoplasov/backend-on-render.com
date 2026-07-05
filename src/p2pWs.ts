@@ -124,6 +124,7 @@ export const addP2pEndpoints = (server: Server) => {
 
   // WS Handlers
   const onMessage = (ws: WebSocket, data: WebSocket.Data) => {
+    console.log('onMessage');
     try {
       const message = JSON.parse(data.toString()) as WsRequest;
       console.log('Received WS:', message);
