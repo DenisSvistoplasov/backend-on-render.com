@@ -30,9 +30,9 @@ export function startWebSocket({
       );
 
     log('connection');
-    ws.on('message', (msg) => log('message', { size: msg.length }));
-    ws.on('ping', (data) => log('ping', { size: data.length }));
-    ws.on('pong', (data) => log('pong', { size: data.length }));
+    ws.on('message', (msg: any) => log('message', { size: msg.length }));
+    ws.on('ping', (data: any) => log('ping', { size: data.length }));
+    ws.on('pong', (data: any) => log('pong', { size: data.length }));
     ws.on('close', (code, reason) =>
       log('close', { code, reason: reason.toString('hex') }),
     );
