@@ -21,13 +21,13 @@ export function startWebSocket(server: http.Server) {
 
     ws.on('message', (data: WebSocket.Data) => {
       try {
-        const parsed = JSON.parse(data.toString());
-        console.log('Received:', parsed);
+        // const parsed = JSON.parse(data.toString());
+        console.log('Received:', data);
 
         clients.forEach((client) => {
           if (client !== ws && client.readyState === WebSocket.OPEN) {
             client.send(
-              JSON.stringify('Received: ' + JSON.stringify(parsed)),
+              JSON.stringify('Received: ' + JSON.stringify(data)),
             );
           }
         });
