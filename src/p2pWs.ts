@@ -142,15 +142,17 @@ export const addP2pEndpoints = (server: Server) => {
             console.log('reconnectUser: ', currentUserId);
             userWSs.set(ws, currentUserId);
             const oldPairs = reconnectUser(currentUserId);
-            ws.send(
-              JSON.stringify({
-                type: 'initial',
-                payload: {
-                  yourId: currentUserId,
-                  pairs: oldPairs,
-                },
-              } as WsGetInitialResponse),
-            );
+            setTimeout(() => {
+              ws.send(
+                JSON.stringify({
+                  type: 'initial',
+                  payload: {
+                    yourId: currentUserId,
+                    pairs: oldPairs,
+                  },
+                } as WsGetInitialResponse),
+              );
+            }, 5000);
           } else {
             // connection after exit
             userCount++;
@@ -298,12 +300,11 @@ export const addP2pEndpoints = (server: Server) => {
 
     console.log('close user ws: ', userId);
     userWSs.delete(ws);
-    
+
     deleteUser(userId);
   };
 
   startWebSocket({ server, onMessage, onClose });
-
 
   // UTILS
   const addNewUser = (userId: string) => {
