@@ -159,6 +159,25 @@ export const addP2pEndpoints = (server: Server) => {
             userWSs.set(ws, currentUserId);
             const newPairs = addNewUser(currentUserId);
             console.log('user after exit: ', currentUserId);
+            setTimeout(() => {
+              ws.send(
+                JSON.stringify({
+                  type: 'initial',
+                  payload: {
+                    yourId: currentUserId,
+                    pairs: newPairs,
+                  },
+                } as WsGetInitialResponse),
+              );
+            }, 5000);
+          }
+          // first enter
+        } else {
+          currentUserId = String(++userCount);
+          console.log('new user: ', currentUserId);
+          userWSs.set(ws, currentUserId);
+          const newPairs = addNewUser(currentUserId);
+          setTimeout(() => {
             ws.send(
               JSON.stringify({
                 type: 'initial',
@@ -168,22 +187,7 @@ export const addP2pEndpoints = (server: Server) => {
                 },
               } as WsGetInitialResponse),
             );
-          }
-          // first enter
-        } else {
-          currentUserId = String(++userCount);
-          console.log('new user: ', currentUserId);
-          userWSs.set(ws, currentUserId);
-          const newPairs = addNewUser(currentUserId);
-          ws.send(
-            JSON.stringify({
-              type: 'initial',
-              payload: {
-                yourId: currentUserId,
-                pairs: newPairs,
-              },
-            } as WsGetInitialResponse),
-          );
+          }, 5000);
         }
 
         // Wait changes
