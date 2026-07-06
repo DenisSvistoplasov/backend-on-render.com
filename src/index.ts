@@ -17,6 +17,7 @@ let isInitialized = false;
 // TODO:  добавить cron-job.org, чтобы регулярно пинговать и не давать уснуть
 // настроить отображение и ссылку Push-уведомления
 
+// Firestore DB
 dialogsRef.onSnapshot((snapshot) => {
   if (!isInitialized) {
     console.log('Subscribed to dialogs');
@@ -78,7 +79,6 @@ dialogsRef.onSnapshot((snapshot) => {
 // Middleware для парсинга JSON
 app.use(express.json());
 
-// Firestore DB
 app.get('/api/ping', async (req: Request, res: Response) => {
   try {
     res.json({

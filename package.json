@@ -8,6 +8,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node dist/index.js",
+    "start_locally": "tsc && node dist/index_local.js",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

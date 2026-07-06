@@ -1,10 +1,10 @@
 import {
   Pair,
   PairChanges,
-  PairListener,
+  UserListener,
   WsGetInitialResponse,
   WsRequest,
-  WsUpdateResponse,
+  WsResponse,
 } from './p2pWsTypes';
 import { Server } from 'http';
 import WebSocket from 'ws';
@@ -14,47 +14,19 @@ export const addP2pEndpoints = (server: Server) => {
   let userCount = 0;
   const userIds: string[] = [];
   const userWSs = new Map<WebSocket, string>();
-  const userPresenceTimers: Record<string, NodeJS.Timeout> = {};
   const pairs: Record<string, Pair> = {};
-  const timeoutMap: Record<string, NodeJS.Timeout> = {};
   const Listeners = {
-    map: {} as Record<
-      string,
-      { data: PairChanges | null; listener: PairListener | null }
-    >,
-    addListener(userId: string, listener: PairListener) {
-      if (!this.map[userId]) this.map[userId] = { data: null, listener };
-      else this.map[userId].listener = listener;
-
-      if (this.map[userId].data) {
-        listener(this.map[userId].data);
-      }
+    listeners: {} as Record<string, UserListener>,
+    addListener(userId: string, listener: UserListener) {
+      this.listeners[userId] = listener;
     },
     removeListener(userId: string) {
-      if (this.map[userId]) delete this.map[userId];
+      if (this.listeners[userId]) delete this.listeners[userId];
     },
-    call(userId: string, data: PairChanges) {
-      if (!this.map[userId]) this.map[userId] = { data: null, listener: null };
-
-      if (this.map[userId].listener) this.map[userId].listener(data);
-      else {
-        if (!this.map[userId])
-          console.warn('2) There is no listener for id', userId);
-        this.map[userId].data = {
-          added: [
-            ...(this.map[userId].data?.added || []),
-            ...(data.added || []),
-          ],
-          modified: [
-            ...(this.map[userId].data?.modified || []),
-            ...(data.modified || []),
-          ],
-          removed: [
-            ...(this.map[userId].data?.removed || []),
-            ...(data.removed || []),
-          ],
-        };
-      }
+    call(userId: string, message: WsResponse) {
+      if (!this.listeners[userId])
+        return console.warn('There is no listener for id', userId);
+      this.listeners[userId](message);
     },
   };
 
@@ -67,30 +39,10 @@ export const addP2pEndpoints = (server: Server) => {
         'New user. Call listeners for ',
         currentUserId,
         'listener: ',
-        !!Listeners.map[currentUserId]?.listener,
+        !!Listeners.listeners[currentUserId],
       );
-      Listeners.call(currentUserId, { added: [pair] });
+      Listeners.call(currentUserId, { type: 'addPair', payload: pair });
     });
-  };
-  const handlePairModified = (pairId: string) => {
-    const [senderId, receiverId] = pairId.split('_vs_');
-
-    console.log(
-      'Modified. Call listeners for ',
-      senderId,
-      'listener: ',
-      !!Listeners.map[senderId]?.listener,
-      '. Call listeners for ',
-      receiverId,
-      'listener: ',
-      !!Listeners.map[receiverId]?.listener,
-      'offer: ',
-      !!pairs[pairId].offer,
-      'answer: ',
-      !!pairs[pairId].answer,
-    );
-    Listeners.call(senderId, { modified: [pairs[pairId]] });
-    Listeners.call(receiverId, { modified: [pairs[pairId]] });
   };
 
   const handleUserDeleted = (userPairMap: Record<string, string>) => {
@@ -99,9 +51,9 @@ export const addP2pEndpoints = (server: Server) => {
       console.log(
         'Delete user. Call listeners for ',
         oldUserId,
-        !!Listeners.map[oldUserId]?.listener,
+        !!Listeners.listeners[oldUserId],
       );
-      Listeners.call(oldUserId, { removed: [pairId] });
+      Listeners.call(oldUserId, { type: 'deletePair', payload: pairId });
     }
   };
 
@@ -109,17 +61,17 @@ export const addP2pEndpoints = (server: Server) => {
     userId: string,
     oldPairs: Record<string, Pair>,
   ) => {
-    for (const pairId in oldPairs) {
-      const pair = oldPairs[pairId];
-      const otherUserId =
-        pair.senderId === userId ? pair.receiverId : pair.senderId;
-      console.log(
-        'Reconnect user. Call listeners for ',
-        otherUserId,
-        !!Listeners.map[otherUserId]?.listener,
-      );
-      Listeners.call(otherUserId, { modified: [pair] });
-    }
+    // for (const pairId in oldPairs) {
+    //   const pair = oldPairs[pairId];
+    //   const otherUserId =
+    //     pair.senderId === userId ? pair.receiverId : pair.senderId;
+    //   console.log(
+    //     'Reconnect user. Call listeners for ',
+    //     otherUserId,
+    //     !!Listeners.map[otherUserId]?.listener,
+    //   );
+    //   Listeners.call(otherUserId, { modified: [pair] });
+    // }
   };
 
   // WS Handlers
@@ -127,73 +79,20 @@ export const addP2pEndpoints = (server: Server) => {
     console.log('onMessage');
     try {
       const message = JSON.parse(data.toString()) as WsRequest;
-      console.log('Received WS:', message);
+      console.log('Received WS:', message.type);
 
       // Initial
       if (message.type === 'initial') {
         const clientUserId = message.payload?.userId;
-        let currentUserId: string;
 
-        if (clientUserId) {
-          currentUserId = clientUserId;
+        const userId = addNewUser(ws, clientUserId);
 
-          // if page reload
-          if (userIds.includes(currentUserId)) {
-            console.log('reconnectUser: ', currentUserId);
-            userWSs.set(ws, currentUserId);
-            const oldPairs = reconnectUser(currentUserId);
-              ws.send(
-                JSON.stringify({
-                  type: 'initial',
-                  payload: {
-                    yourId: currentUserId,
-                    pairs: oldPairs,
-                  },
-                } as WsGetInitialResponse),
-              );
-          } else {
-            // connection after exit
-            userCount++;
-            userWSs.set(ws, currentUserId);
-            const newPairs = addNewUser(currentUserId);
-            console.log('user after exit: ', currentUserId);
-              ws.send(
-                JSON.stringify({
-                  type: 'initial',
-                  payload: {
-                    yourId: currentUserId,
-                    pairs: newPairs,
-                  },
-                } as WsGetInitialResponse),
-              );
-          }
-          // first enter
-        } else {
-          currentUserId = String(++userCount);
-          console.log('new user: ', currentUserId);
-          userWSs.set(ws, currentUserId);
-          const newPairs = addNewUser(currentUserId);
-            ws.send(
-              JSON.stringify({
-                type: 'initial',
-                payload: {
-                  yourId: currentUserId,
-                  pairs: newPairs,
-                },
-              } as WsGetInitialResponse),
-            );
-        }
-
+        if (!userId) return;
+        
         // Wait changes
-        console.log('Add listener for ' + currentUserId);
-        Listeners.addListener(currentUserId, (changedPairs) => {
-          console.log('Sending update for ' + currentUserId);
-          ws.send(
-            JSON.stringify({
-              type: 'update',
-              payload: changedPairs,
-            } as WsUpdateResponse),
-          );
+        console.log('Add listener for ' + userId);
+        Listeners.addListener(userId, (data) => {
+          ws.send(JSON.stringify(data));
         });
       }
 
@@ -214,13 +113,12 @@ export const addP2pEndpoints = (server: Server) => {
         const pairId = senderId + '_vs_' + receiverId;
 
         if (!pairs[pairId]) {
-          pairs[pairId] = {
-            pairId,
-            senderId,
-            receiverId,
-            offer: null,
-            answer: null,
-          };
+          return ws.send(
+            JSON.stringify({
+              error: 'Bad Request',
+              message: 'There is no pair ' + pairId + '. On setOffer.',
+            }),
+          );
         }
 
         pairs[pairId].offer = offer;
@@ -228,16 +126,24 @@ export const addP2pEndpoints = (server: Server) => {
 
         console.log('Set offer by', userId);
         console.log(
-          'Listener for sender',
-          senderId,
-          !!Listeners.map[senderId]?.listener,
+          'Listener for sender ' +
+            senderId +
+            ': ' +
+            !!Listeners.listeners[senderId] +
+            ', for receiver ' +
+            receiverId +
+            ': ' +
+            !!Listeners.listeners[receiverId],
         );
-        console.log(
-          'Listener for receiver',
-          receiverId,
-          !!Listeners.map[receiverId]?.listener,
-        );
-        handlePairModified(pairId);
+
+        Listeners.call(senderId, {
+          type: 'setOffer',
+          payload: { pairId, offer },
+        });
+        Listeners.call(receiverId, {
+          type: 'setOffer',
+          payload: { pairId, offer },
+        });
       }
 
       // Set Answer
@@ -284,7 +190,14 @@ export const addP2pEndpoints = (server: Server) => {
 
         pairs[pairId].answer = answer;
 
-        handlePairModified(pairId);
+        Listeners.call(senderId, {
+          type: 'setAnswer',
+          payload: { pairId, answer },
+        });
+        Listeners.call(receiverId, {
+          type: 'setAnswer',
+          payload: { pairId, answer },
+        });
       }
     } catch (error) {
       console.log('error: ', error);
@@ -305,13 +218,27 @@ export const addP2pEndpoints = (server: Server) => {
   startWebSocket({ server, onMessage, onClose });
 
   // UTILS
-  const addNewUser = (userId: string) => {
+  const addNewUser = (ws: WebSocket, userId?: string) => {
+    userCount++;
+
+    if (userId) {
+      if (userIds.includes(userId)) {
+        return console.error('reconnectUser with existed: ', userId);
+      } else {
+        console.log('user after exit: ', userId);
+      }
+    } else {
+      userId = String(userCount);
+      console.log('new user: ', userId);
+    }
+
+    userWSs.set(ws, userId);
+
     const newPairs: Pair[] = [];
 
     userIds.forEach((id) => {
       const [senderId, receiverId] = userId < id ? [userId, id] : [id, userId];
       const pairId = senderId + '_vs_' + receiverId;
-
       const newPair: Pair = {
         pairId,
         senderId,
@@ -326,9 +253,19 @@ export const addP2pEndpoints = (server: Server) => {
 
     userIds.push(userId);
 
+    ws.send(
+      JSON.stringify({
+        type: 'initial',
+        payload: {
+          yourId: userId,
+          pairs: newPairs,
+        },
+      } as WsGetInitialResponse),
+    );
+
     handleNewUserChange(newPairs, userId);
 
-    return newPairs;
+    return userId;
   };
 
   const reconnectUser = (userId: string) => {

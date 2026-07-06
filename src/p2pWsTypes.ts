@@ -12,8 +12,7 @@ export type PairChanges = {
   modified?: Pair[];
   removed?: string[];
 };
-export type PairListener = (changes: PairChanges) => void;
-
+export type UserListener = (message: WsResponse) => void;
 
 // REQUESTS
 export type WsSetOfferRequest = {
@@ -44,7 +43,7 @@ export type WsRequest =
   | WsSetAnswerRequest
   | WsGetInitialRequest;
 
-  // RESPONSES
+// RESPONSES
 export type WsGetInitialResponse = {
   type: 'initial';
   payload: {
@@ -53,7 +52,29 @@ export type WsGetInitialResponse = {
   };
 };
 
-export type WsUpdateResponse = {
-  type: 'update';
-  payload: PairChanges;
+export type WsAddPairResponse = {
+  type: 'addPair';
+  payload: Pair;
 };
+
+export type WsSetOfferResponse = {
+  type: 'setOffer';
+  payload: { pairId: string; offer: P2pConnectionData };
+};
+
+export type WsSetAnswerResponse = {
+  type: 'setAnswer';
+  payload: { pairId: string; answer: P2pConnectionData };
+};
+
+export type WsDeletePairResponse = {
+  type: 'deletePair';
+  payload: string; // pairId
+};
+
+export type WsResponse =
+  | WsGetInitialResponse
+  | WsAddPairResponse
+  | WsSetOfferResponse
+  | WsSetAnswerResponse
+  | WsDeletePairResponse;
