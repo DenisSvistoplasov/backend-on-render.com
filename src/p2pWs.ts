@@ -77,10 +77,9 @@ export const addP2pEndpoints = (server: Server) => {
 
   // WS Handlers
   const onMessage = (ws: WebSocket, data: WebSocket.Data) => {
-    console.log('onMessage');
     try {
       const message = JSON.parse(data.toString()) as WsRequest;
-      console.log('Received WS:', message.type);
+      console.log('onMessage WS:', message.type);
 
       // Initial
       if (message.type === 'initial') {
@@ -209,11 +208,13 @@ export const addP2pEndpoints = (server: Server) => {
     if (!userWSs.has(ws)) return console.log('no user ws when close');
 
     const { userId, sessionId } = userWSs.get(ws)!;
-
+    
     console.log('close user ws: ', userId);
     userWSs.delete(ws);
-
+    
+    console.log('WS sessionId: ', sessionId);
     const currentSessionId = sessionIds[userId];
+    console.log('currentSessionId: ', currentSessionId);
 
     if (currentSessionId === sessionId) {
       deleteUser(userId);
@@ -231,16 +232,17 @@ export const addP2pEndpoints = (server: Server) => {
 
     if (userId) {
       if (userIds.includes(userId)) {
-        return console.error('reconnectUser with existed: ', userId);
+        return console.error('reconnect existed User ');
       } else {
-        console.log('user after exit: ', userId);
+        console.log('user after exit',);
       }
     } else {
       userId = String(userCount);
-      console.log('new user: ', userId);
+      console.log('new user');
     }
 
-    const sessionId = userId + Math.random().toString(32);
+    const sessionId = userId + '_'+ Math.random().toString(32);
+    console.log('Set sessionId: ', sessionId);
     sessionIds[userId] = sessionId;
     userWSs.set(ws, { userId, sessionId });
 
