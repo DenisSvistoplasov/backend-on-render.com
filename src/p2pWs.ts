@@ -13,7 +13,8 @@ import { startWebSocket } from './webSocket/webSocket';
 export const addP2pEndpoints = (server: Server) => {
   let userCount = 0;
   const userIds: string[] = [];
-  const userWSs = new Map<WebSocket, string>();
+  const sessionIds: Record<string, string> = {};
+  const userWSs = new Map<WebSocket, { userId: string; sessionId: string }>();
   const pairs: Record<string, Pair> = {};
   const Listeners = {
     listeners: {} as Record<string, UserListener>,
@@ -88,7 +89,7 @@ export const addP2pEndpoints = (server: Server) => {
         const userId = addNewUser(ws, clientUserId);
 
         if (!userId) return;
-        
+
         // Wait changes
         console.log('Add listener for ' + userId);
         Listeners.addListener(userId, (data) => {
@@ -207,12 +208,19 @@ export const addP2pEndpoints = (server: Server) => {
   const onClose = (ws: WebSocket) => {
     if (!userWSs.has(ws)) return console.log('no user ws when close');
 
-    const userId = userWSs.get(ws)!;
+    const { userId, sessionId } = userWSs.get(ws)!;
 
     console.log('close user ws: ', userId);
     userWSs.delete(ws);
 
-    deleteUser(userId);
+    const currentSessionId = sessionIds[userId];
+
+    if (currentSessionId === sessionId) {
+      deleteUser(userId);
+    }
+    else {
+      console.log('currentSessionId !== ws sessionId => don`t delete user');
+    }
   };
 
   startWebSocket({ server, onMessage, onClose });
@@ -232,7 +240,9 @@ export const addP2pEndpoints = (server: Server) => {
       console.log('new user: ', userId);
     }
 
-    userWSs.set(ws, userId);
+    const sessionId = userId + Math.random().toString(32);
+    sessionIds[userId] = sessionId;
+    userWSs.set(ws, { userId, sessionId });
 
     const newPairs: Pair[] = [];
 
@@ -286,6 +296,7 @@ export const addP2pEndpoints = (server: Server) => {
   };
 
   const deleteUser = (userId: string) => {
+    console.log('deleteUser: ', userId);
     // userCount--;
     userIds.splice(userIds.indexOf(userId), 1);
 
@@ -301,7 +312,7 @@ export const addP2pEndpoints = (server: Server) => {
     }
 
     Listeners.removeListener(userId);
-    console.log('3) removeListener for ' + userId);
+    console.log('RemoveListener for ' + userId);
 
     handleUserDeleted(userPairMap);
   };
