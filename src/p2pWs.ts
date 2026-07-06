@@ -142,7 +142,6 @@ export const addP2pEndpoints = (server: Server) => {
             console.log('reconnectUser: ', currentUserId);
             userWSs.set(ws, currentUserId);
             const oldPairs = reconnectUser(currentUserId);
-            setTimeout(() => {
               ws.send(
                 JSON.stringify({
                   type: 'initial',
@@ -152,14 +151,12 @@ export const addP2pEndpoints = (server: Server) => {
                   },
                 } as WsGetInitialResponse),
               );
-            }, 5000);
           } else {
             // connection after exit
             userCount++;
             userWSs.set(ws, currentUserId);
             const newPairs = addNewUser(currentUserId);
             console.log('user after exit: ', currentUserId);
-            setTimeout(() => {
               ws.send(
                 JSON.stringify({
                   type: 'initial',
@@ -169,7 +166,6 @@ export const addP2pEndpoints = (server: Server) => {
                   },
                 } as WsGetInitialResponse),
               );
-            }, 5000);
           }
           // first enter
         } else {
@@ -177,7 +173,6 @@ export const addP2pEndpoints = (server: Server) => {
           console.log('new user: ', currentUserId);
           userWSs.set(ws, currentUserId);
           const newPairs = addNewUser(currentUserId);
-          setTimeout(() => {
             ws.send(
               JSON.stringify({
                 type: 'initial',
@@ -187,7 +182,6 @@ export const addP2pEndpoints = (server: Server) => {
                 },
               } as WsGetInitialResponse),
             );
-          }, 5000);
         }
 
         // Wait changes
