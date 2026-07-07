@@ -52,8 +52,8 @@ export type WsGetInitialResponse = {
   };
 };
 
-export type WsAddPairResponse = {
-  type: 'addPair';
+export type WsPutPairResponse = {
+  type: 'putPair';
   payload: Pair;
 };
 
@@ -74,7 +74,7 @@ export type WsDeletePairResponse = {
 
 export type WsResponse =
   | WsGetInitialResponse
-  | WsAddPairResponse
+  | WsPutPairResponse
   | WsSetOfferResponse
   | WsSetAnswerResponse
   | WsDeletePairResponse;

@@ -42,7 +42,7 @@ export const addP2pEndpoints = (server: Server) => {
         'listener: ',
         !!Listeners.listeners[currentUserId],
       );
-      Listeners.call(currentUserId, { type: 'addPair', payload: pair });
+      Listeners.call(currentUserId, { type: 'putPair', payload: pair });
     });
   };
 
@@ -208,18 +208,17 @@ export const addP2pEndpoints = (server: Server) => {
     if (!userWSs.has(ws)) return console.log('no user ws when close');
 
     const { userId, sessionId } = userWSs.get(ws)!;
-    
+
     console.log('close user ws: ', userId);
     userWSs.delete(ws);
-    
+
     console.log('WS sessionId: ', sessionId);
     const currentSessionId = sessionIds[userId];
     console.log('currentSessionId: ', currentSessionId);
 
     if (currentSessionId === sessionId) {
       deleteUser(userId);
-    }
-    else {
+    } else {
       console.log('currentSessionId !== ws sessionId => don`t delete user');
     }
   };
@@ -232,16 +231,16 @@ export const addP2pEndpoints = (server: Server) => {
 
     if (userId) {
       if (userIds.includes(userId)) {
-        return console.error('reconnect existed User ');
+        console.log('reconnect existed User ');
       } else {
-        console.log('user after exit',);
+        console.log('user after exit');
       }
     } else {
       userId = String(userCount);
       console.log('new user');
     }
 
-    const sessionId = userId + '_'+ Math.random().toString(32);
+    const sessionId = userId + '_' + Math.random().toString(32);
     console.log('Set sessionId: ', sessionId);
     sessionIds[userId] = sessionId;
     userWSs.set(ws, { userId, sessionId });
@@ -249,6 +248,7 @@ export const addP2pEndpoints = (server: Server) => {
     const newPairs: Pair[] = [];
 
     userIds.forEach((id) => {
+      if (id === userId) return;
       const [senderId, receiverId] = userId < id ? [userId, id] : [id, userId];
       const pairId = senderId + '_vs_' + receiverId;
       const newPair: Pair = {
@@ -263,7 +263,9 @@ export const addP2pEndpoints = (server: Server) => {
       pairs[pairId] = newPair;
     });
 
-    userIds.push(userId);
+    if (!userIds.includes(userId)) {
+      userIds.push(userId);
+    }
 
     ws.send(
       JSON.stringify({
